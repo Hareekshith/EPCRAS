@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}IT Assets - EPCRAS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-0"><i class="bi bi-pc-display me-2 text-primary"></i>IT Asset Inventory</h3>
+        <p class="text-muted mb-0">Track and manage organizational computing assets.</p>
+    </div>
+    <div>
+        {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT') %}
+        <a href="{{ url_for('asset.departments') }}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-building me-1"></i> Departments
+        </a>
+        <a href="{{ url_for('software.import_csv') }}" class="btn btn-outline-primary me-2">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Import CSV
+        </a>
+        <a href="{{ url_for('asset.create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i> Add Asset
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Search & Filter Controls -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body bg-white p-3">
+        <form method="GET" action="{{ url_for('asset.index') }}" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control" placeholder="Search hostname, IP, OS, owner..." value="{{ search_q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="criticality" class="form-select">
+                    <option value="">-- All Criticalities --</option>
+                    {% for crit in criticalities %}
+                    <option value="{{ crit }}" {% if criticality_filter == crit %}selected{% endif %}>{{ crit }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="department_id" class="form-select">
+                    <option value="">-- All Departments --</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if dept_filter == dept.id %}selected{% endif %}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-filter me-1"></i> Filter</button>
+                <a href="{{ url_for('asset.index') }}" class="btn btn-outline-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Assets Data Table -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Hostname</th>
+                        <th>IP Address</th>
+                        <th>Operating System</th>
+                        <th>Department</th>
+                        <th>Type</th>
+                        <th>Criticality</th>
+                        <th>Installed SW</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asset in assets %}
+                    <tr>
+                        <td class="fw-bold">
+                            <a href="{{ url_for('asset.detail', asset_id=asset.id) }}" class="text-decoration-none text-dark">
+                                {{ asset.hostname }}
+                            </a>
+                        </td>
+                        <td class="font-monospace fs-7">{{ asset.ip_address }}</td>
+                        <td>{{ asset.operating_system }} {% if asset.os_version %}<small class="text-muted">({{ asset.os_version }})</small>{% endif %}</td>
+                        <td><span class="badge bg-light text-dark border">{{ asset.department_name }}</span></td>
+                        <td><small>{{ asset.asset_type }}</small></td>
+                        <td>
+                            {% if asset.criticality == 'CRITICAL' %}
+                                <span class="badge bg-danger">CRITICAL</span>
+                            {% elif asset.criticality == 'HIGH' %}
+                                <span class="badge bg-warning text-dark">HIGH</span>
+                            {% elif asset.criticality == 'MEDIUM' %}
+                                <span class="badge bg-info text-white">MEDIUM</span>
+                            {% else %}
+                                <span class="badge bg-secondary">LOW</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-primary rounded-pill">{{ asset.installed_software.count() }}</span>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('asset.detail', asset_id=asset.id) }}" class="btn btn-sm btn-outline-info me-1" title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT') %}
+                            <a href="{{ url_for('asset.edit', asset_id=asset.id) }}" class="btn btn-sm btn-outline-warning me-1" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('asset.delete', asset_id=asset.id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete asset {{ asset.hostname }}?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i> No IT assets found matching the criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

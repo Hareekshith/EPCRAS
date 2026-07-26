@@ -1,0 +1,51 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Flask & SQLite Instance directory
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# Packaging and Build artifacts
+build/
+bdist.*/
+dist/
+sdist/
+wheels/
+*.egg-info/
+.eggs/
+
+# Testing & Coverage outputs
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.nox/
+.tox/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Operating System files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Import Software Inventory CSV - EPCRAS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-dark text-white py-3">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-file-earmark-spreadsheet me-2 text-info"></i>Import Software Inventory CSV</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-info border-0 shadow-sm mb-4">
+                    <h6 class="fw-bold mb-2"><i class="bi bi-info-circle-fill me-1"></i> Required CSV Format</h6>
+                    <p class="mb-2">Your CSV file must contain a header line with the exact column names: <code>hostname,software,vendor,version</code>.</p>
+                    <pre class="bg-dark text-light p-3 rounded font-monospace fs-7 mb-0">hostname,software,vendor,version
+PC001,Firefox,Mozilla,128.0
+PC001,Python,Python Software Foundation,3.10.0
+SRV-DB01,PostgreSQL,PostgreSQL Global Development Group,15.2</pre>
+                </div>
+
+                <form method="POST" enctype="multipart/form-data" action="{{ url_for('software.import_csv') }}" novalidate>
+                    {{ form.csrf_token }}
+
+                    <div class="mb-4">
+                        {{ form.csv_file.label(class="form-label fw-semibold") }}
+                        {{ form.csv_file(class="form-control" + (" is-invalid" if form.csv_file.errors else "")) }}
+                        {% for error in form.csv_file.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('software.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                        {{ form.submit(class="btn btn-primary fw-bold px-4") }}
+                    </div>
+                </form>
+
+                {% if errors %}
+                <div class="mt-4">
+                    <div class="alert alert-danger shadow-sm border-0 mb-0">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i> Import Validation Errors ({{ errors|length }})</h6>
+                        <ul class="mb-0 ps-3">
+                            {% for err in errors %}
+                            <li>{{ err }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
