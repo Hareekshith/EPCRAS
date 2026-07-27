@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}User Management - EPCRAS Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1 text-dark"><i class="bi bi-people me-2 text-primary"></i>User & Role Management</h2>
+        <p class="text-muted mb-0">Create users, assign RBAC roles, and manage active account status.</p>
+    </div>
+    <a href="{{ url_for('admin.create_user_route') }}" class="btn btn-primary shadow-sm">
+        <i class="bi bi-person-plus me-1"></i> Create User Account
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card shadow-sm border-0 mb-4 bg-light">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('admin.users') }}" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by username or email..." value="{{ search }}">
+            </div>
+            <div class="col-md-3">
+                <select name="role" class="form-select form-select-sm">
+                    <option value="">All Roles</option>
+                    {% for r in roles %}
+                        <option value="{{ r }}" {% if selected_role == r %}selected{% endif %}>{{ r }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="disabled" {% if selected_status == 'disabled' %}selected{% endif %}>Disabled</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-funnel me-1"></i> Filter</button>
+                <a href="{{ url_for('admin.users') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-circle"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Username</th>
+                        <th>Email Address</th>
+                        <th>Assigned Role</th>
+                        <th>Status</th>
+                        <th>Created At</th>
+                        <th>Last Login</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if users %}
+                        {% for user in users %}
+                        <tr>
+                            <td class="fw-bold text-dark">
+                                <i class="bi bi-person-circle me-2 text-secondary"></i>{{ user.username }}
+                            </td>
+                            <td class="text-muted">{{ user.email }}</td>
+                            <td>
+                                {% if user.role == 'ADMINISTRATOR' %}
+                                    <span class="badge bg-danger">ADMINISTRATOR</span>
+                                {% elif user.role == 'SECURITY_ANALYST' %}
+                                    <span class="badge bg-info text-dark">SECURITY_ANALYST</span>
+                                {% elif user.role == 'IT_SUPPORT' %}
+                                    <span class="badge bg-primary">IT_SUPPORT</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">AUDITOR</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.is_active %}
+                                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary"><i class="bi bi-dash-circle me-1"></i>Disabled</span>
+                                {% endif %}
+                            </td>
+                            <td class="font-monospace small text-muted">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '-' }}</td>
+                            <td class="font-monospace small text-muted">{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a href="{{ url_for('admin.edit_user_route', user_id=user.id) }}" class="btn btn-sm btn-outline-primary" title="Edit User">
+                                        <i class="bi bi-pencil me-1"></i> Edit
+                                    </a>
+
+                                    {% if current_user.id != user.id %}
+                                    <form action="{{ url_for('admin.toggle_status', user_id=user.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to toggle account status for {{ user.username }}?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        {% if user.is_active %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Disable Account">
+                                                <i class="bi bi-person-x me-1"></i> Disable
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-sm btn-outline-success" title="Enable Account">
+                                                <i class="bi bi-person-check me-1"></i> Enable
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">No user accounts found matching your query.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

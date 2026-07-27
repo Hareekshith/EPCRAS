@@ -63,8 +63,57 @@
                             <i class="bi bi-app-indicator me-1"></i> Software Catalogue
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'compliance.overview' %}active{% endif %}" href="{{ url_for('compliance.overview') }}">
+                            <i class="bi bi-shield-check me-1"></i> Patch Compliance
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'compliance.priority_queue' %}active{% endif %}" href="{{ url_for('compliance.priority_queue') }}">
+                            <i class="bi bi-list-ol me-1"></i> Priority Queue
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('report.') %}active{% endif %}" href="{{ url_for('report.index') }}">
+                            <i class="bi bi-file-earmark-pdf me-1"></i> Reports
+                        </a>
+                    </li>
+
+
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('search.') %}active{% endif %}" href="{{ url_for('search.index') }}">
+                            <i class="bi bi-search me-1"></i> Search
+                        </a>
+                    </li>
+                    {% if current_user.has_role('ADMINISTRATOR', 'SECURITY_ANALYST') %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('vulnerability.') %}active{% endif %}" href="{{ url_for('vulnerability.index') }}">
+                            <i class="bi bi-bug me-1"></i> Vulnerabilities
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if current_user.has_role('ADMINISTRATOR') %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('admin.') %}active{% endif %}" href="{{ url_for('admin.index') }}">
+                            <i class="bi bi-gear-wide-connected me-1"></i> Administration
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
+
+
                 <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item me-3">
+                        <a class="nav-link position-relative px-2 {% if request.endpoint and request.endpoint.startswith('notification.') %}active{% endif %}" href="{{ url_for('notification.index') }}" title="Notifications">
+                            <i class="bi bi-bell fs-5"></i>
+                            {% if unread_notifications_count and unread_notifications_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    {{ unread_notifications_count }}
+                                </span>
+                            {% endif %}
+                        </a>
+                    </li>
                     <li class="nav-item me-3 text-light">
                         <span class="badge bg-primary role-badge">{{ current_user.role }}</span>
                         <span class="ms-1 font-monospace">{{ current_user.username }}</span>
@@ -75,6 +124,7 @@
                         </a>
                     </li>
                 </ul>
+
                 {% else %}
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">

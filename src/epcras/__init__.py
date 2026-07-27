@@ -7,7 +7,15 @@ from epcras.routes.auth import auth_bp
 from epcras.routes.main import main_bp
 from epcras.routes.asset import asset_bp
 from epcras.routes.software import software_bp
+from epcras.routes.vulnerability import vulnerability_bp
+from epcras.routes.compliance import compliance_bp
+from epcras.routes.report import report_bp
+from epcras.routes.search import search_bp
+from epcras.routes.notification import notification_bp
+from epcras.routes.admin import admin_bp
 from epcras.cli import register_cli_commands
+
+
 
 def create_app(config_name=None):
     if config_name is None:
@@ -37,6 +45,15 @@ def create_app(config_name=None):
     def load_user(user_id):
         return db.session.get(User, int(user_id))
 
+    # Global Template Context Processor for Notifications
+    @app.context_processor
+    def inject_notifications():
+        from flask_login import current_user
+        from epcras.services.notification_service import get_unread_count
+        if current_user.is_authenticated:
+            return {'unread_notifications_count': get_unread_count(current_user.id)}
+        return {'unread_notifications_count': 0}
+
     # Error Handlers
     @app.errorhandler(401)
     def unauthorized_error(error):
@@ -61,6 +78,17 @@ def create_app(config_name=None):
     app.register_blueprint(main_bp)
     app.register_blueprint(asset_bp)
     app.register_blueprint(software_bp)
+    app.register_blueprint(vulnerability_bp)
+    app.register_blueprint(compliance_bp)
+    app.register_blueprint(report_bp)
+    app.register_blueprint(search_bp)
+    app.register_blueprint(notification_bp)
+    app.register_blueprint(admin_bp)
+
+
+
+
+
 
     # Register CLI Commands
     register_cli_commands(app)

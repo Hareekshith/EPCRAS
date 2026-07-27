@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}Patch Compliance Engine - EPCRAS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-shield-check me-2 text-primary"></i>Patch Compliance Overview</h2>
+        <p class="text-muted mb-0">Automated patch compliance analysis and vulnerability exposure tracking.</p>
+    </div>
+    {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT', 'SECURITY_ANALYST') %}
+    <div>
+        <form action="{{ url_for('compliance.run_analysis') }}" method="POST" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-primary shadow-sm">
+                <i class="bi bi-play-circle me-1"></i> Run Compliance Analysis
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Overall Compliance Posture Metrics -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body p-4 text-center">
+                <span class="text-muted small fw-semibold text-uppercase d-block mb-1">Compliance Rate</span>
+                <span class="display-5 fw-bold {% if summary.compliance_rate >= 80.0 %}text-success{% elif summary.compliance_rate >= 50.0 %}text-warning{% else %}text-danger{% endif %} font-monospace">
+                    {{ summary.compliance_rate }}%
+                </span>
+                <div class="progress mt-3" style="height: 6px;">
+                    <div class="progress-bar {% if summary.compliance_rate >= 80.0 %}bg-success{% elif summary.compliance_rate >= 50.0 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" style="width: {{ summary.compliance_rate }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body p-4">
+                <span class="text-muted small fw-semibold text-uppercase d-block mb-2">Asset Health Breakdown</span>
+                <div class="d-flex justify-content-between mb-1 fs-7">
+                    <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Compliant</span>
+                    <span class="fw-bold">{{ summary.compliant_assets }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1 fs-7">
+                    <span class="text-danger"><i class="bi bi-exclamation-octagon-fill me-1"></i>Non-Compliant</span>
+                    <span class="fw-bold">{{ summary.non_compliant_assets }}</span>
+                </div>
+                <div class="d-flex justify-content-between fs-7">
+                    <span class="text-secondary"><i class="bi bi-question-circle-fill me-1"></i>Unknown</span>
+                    <span class="fw-bold">{{ summary.unknown_assets }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body p-4 text-center">
+                <span class="text-muted small fw-semibold text-uppercase d-block mb-1">Detected Vulnerabilities</span>
+                <span class="display-5 fw-bold text-danger font-monospace">
+                    {{ summary.total_findings }}
+                </span>
+                <a href="{{ url_for('compliance.non_compliant') }}" class="d-block mt-2 small text-decoration-none fw-semibold">
+                    View Non-Compliant Assets <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body p-4">
+                <span class="text-muted small fw-semibold text-uppercase d-block mb-2">Severity Exposure</span>
+                <div class="d-flex justify-content-between mb-1 fs-7">
+                    <span class="badge bg-danger">Critical</span>
+                    <span class="fw-bold text-danger">{{ summary.critical_findings }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1 fs-7">
+                    <span class="badge bg-warning text-dark">High</span>
+                    <span class="fw-bold text-warning">{{ summary.high_findings }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1 fs-7">
+                    <span class="badge bg-info text-dark">Medium</span>
+                    <span class="fw-bold text-info">{{ summary.medium_findings }}</span>
+                </div>
+                <div class="d-flex justify-content-between fs-7">
+                    <span class="badge bg-secondary">Low</span>
+                    <span class="fw-bold text-secondary">{{ summary.low_findings }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Non-Compliant Findings Table -->
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Recent Non-Compliant Findings</h5>
+        <a href="{{ url_for('compliance.non_compliant') }}" class="btn btn-sm btn-outline-light">View All Findings</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Asset Hostname</th>
+                        <th>Software</th>
+                        <th>Installed Version</th>
+                        <th>CVE ID</th>
+                        <th class="text-center">CVSS</th>
+                        <th>Severity</th>
+                        <th>Fixed Version</th>
+                        <th class="text-center">Patch Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if recent_findings %}
+                        {% for finding in recent_findings %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('compliance.asset_compliance', asset_id=finding.asset_id) }}" class="fw-bold text-decoration-none">
+                                    {{ finding.asset.hostname if finding.asset else 'Asset #' + finding.asset_id|string }}
+                                </a>
+                            </td>
+                            <td>{{ finding.software_name }}</td>
+                            <td><code class="text-dark">{{ finding.installed_version }}</code></td>
+                            <td>
+                                {% if finding.cve_id %}
+                                    <a href="{{ url_for('vulnerability.index', cve=finding.cve_id) }}" class="font-monospace text-decoration-none fw-bold">
+                                        {{ finding.cve_id }}
+                                    </a>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if finding.cvss_score %}
+                                    <span class="badge {% if finding.cvss_score >= 9.0 %}bg-danger{% elif finding.cvss_score >= 7.0 %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} font-monospace">
+                                        {{ "%.1f"|format(finding.cvss_score) }}
+                                    </span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if finding.severity == 'CRITICAL' %}
+                                    <span class="badge bg-danger">Critical</span>
+                                {% elif finding.severity == 'HIGH' %}
+                                    <span class="badge bg-warning text-dark">High</span>
+                                {% elif finding.severity == 'MEDIUM' %}
+                                    <span class="badge bg-info text-dark">Medium</span>
+                                {% elif finding.severity == 'LOW' %}
+                                    <span class="badge bg-secondary">Low</span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if finding.fixed_version %}
+                                    <span class="badge bg-success-subtle text-success border border-success">{{ finding.fixed_version }}</span>
+                                {% else %}
+                                    <span class="text-muted fs-7">Unpatched</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if finding.patch_available %}
+                                    <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Available</span>
+                                {% else %}
+                                    <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Unavailable</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                <i class="bi bi-shield-check fs-2 d-block text-success mb-2"></i>
+                                No non-compliant vulnerability findings detected. Run analysis to refresh.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

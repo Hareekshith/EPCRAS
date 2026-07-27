@@ -1,7 +1,9 @@
+import json
 from flask import Blueprint, render_template, redirect, url_for
 from flask_login import login_required, current_user
 from epcras.models.user import Role
 from epcras.services.auth_service import role_required
+from epcras.services.dashboard_service import get_dashboard_metrics
 
 main_bp = Blueprint('main', __name__)
 
@@ -14,7 +16,15 @@ def index():
 @main_bp.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('dashboard/index.html')
+    data = get_dashboard_metrics()
+    metrics = data['metrics']
+    charts_json = json.dumps(data['charts'])
+
+    return render_template(
+        'dashboard/index.html',
+        metrics=metrics,
+        charts_json=charts_json
+    )
 
 @main_bp.route('/admin-only')
 @login_required

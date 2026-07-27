@@ -1,3 +1,4 @@
+import math
 from flask import request
 from flask_login import current_user
 from epcras.extensions import db
@@ -12,7 +13,7 @@ def log_audit_event(
     status: str = 'SUCCESS',
     user_id: int = None
 ) -> AuditLog:
-    """Log an audit event to the database."""
+    """Log an audit event to the database. Secrets (passwords, tokens) must never be logged."""
     if username is None and current_user and current_user.is_authenticated:
         username = current_user.username
         user_id = user_id or current_user.id
@@ -37,3 +38,37 @@ def log_audit_event(
     db.session.add(entry)
     db.session.commit()
     return entry
+
+def get_audit_logs(action_category: str = None, username: str = None, search: str = None, page: int = 1, per_page: int = 25) -> dict:
+    """Query paginated audit logs for viewer with filtering."""
+    query = AuditLog.query
+
+    if action_category:
+        query = query.filter(AuditLog.action_category == action_category.strip().upper())
+
+    if username:
+        query = query.filter(AuditLog.username.ilike(f"%{username.strip()}%"))
+
+    if search:
+        search_clean = search.strip()
+        query = query.filter(
+            (AuditLog.target_entity.ilike(f"%{search_clean}%")) |
+            (AuditLog.details.ilike(f"%{search_clean}%")) |
+            (AuditLog.ip_address.ilike(f"%{search_clean}%"))
+        )
+
+    total = query.count()
+    page = max(1, int(page))
+    per_page = max(1, int(per_page))
+    pages = math.ceil(total / per_page) if total > 0 else 1
+
+    logs = query.order_by(AuditLog.timestamp.desc()).offset((page - 1) * per_page).limit(per_page).all()
+
+    return {
+        "logs_list": logs,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "pages": pages
+    }
+

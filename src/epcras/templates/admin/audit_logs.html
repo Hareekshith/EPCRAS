@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}Audit Log Viewer - EPCRAS Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1 text-dark"><i class="bi bi-journal-text me-2 text-primary"></i>System Audit Log Viewer</h2>
+        <p class="text-muted mb-0">Security event logging and operational activity audit trails.</p>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card shadow-sm border-0 mb-4 bg-light">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('admin.audit_logs') }}" class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <label for="action_category" class="form-label small fw-semibold text-secondary mb-1">Action Category</label>
+                <select id="action_category" name="action_category" class="form-select form-select-sm">
+                    <option value="">All Actions</option>
+                    {% for cat in action_categories %}
+                        <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="username" class="form-label small fw-semibold text-secondary mb-1">User</label>
+                <input type="text" id="username" name="username" class="form-control form-control-sm" placeholder="e.g. admin_test" value="{{ username_query }}">
+            </div>
+            <div class="col-md-4">
+                <label for="search" class="form-label small fw-semibold text-secondary mb-1">Search Details / Target</label>
+                <input type="text" id="search" name="search" class="form-control form-control-sm" placeholder="Search target entity or log details..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-2 d-flex gap-1 pt-4">
+                <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-search me-1"></i> Search</button>
+                <a href="{{ url_for('admin.audit_logs') }}" class="btn btn-sm btn-outline-secondary" title="Reset Filters"><i class="bi bi-x-circle"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Audit Log Table -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Audit Records ({{ log_data.total }})</h5>
+        <small class="text-light opacity-75">Page {{ log_data.page }} of {{ log_data.pages }}</small>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 180px;">Timestamp (UTC)</th>
+                        <th style="width: 140px;">User</th>
+                        <th style="width: 160px;">Action</th>
+                        <th style="width: 180px;">Target Entity</th>
+                        <th style="width: 120px;">IP Address</th>
+                        <th style="width: 90px;">Status</th>
+                        <th>Event Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if log_data.logs_list %}
+                        {% for log in log_data.logs_list %}
+
+                        <tr>
+                            <td class="font-monospace small text-muted">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td class="fw-semibold text-dark">{{ log.username }}</td>
+                            <td>
+                                {% if log.action_category.startswith('USER') %}
+                                    <span class="badge bg-primary text-uppercase fs-7">{{ log.action_category }}</span>
+                                {% elif log.action_category.startswith('ASSET') %}
+                                    <span class="badge bg-info text-dark text-uppercase fs-7">{{ log.action_category }}</span>
+                                {% elif log.action_category.startswith('CVE') or log.action_category == 'VULN' %}
+                                    <span class="badge bg-danger text-uppercase fs-7">{{ log.action_category }}</span>
+                                {% elif log.action_category.startswith('COMPLIANCE') %}
+                                    <span class="badge bg-success text-uppercase fs-7">{{ log.action_category }}</span>
+                                {% elif log.action_category in ('LOGIN', 'LOGOUT') %}
+                                    <span class="badge bg-dark text-uppercase fs-7">{{ log.action_category }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary text-uppercase fs-7">{{ log.action_category }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="font-monospace small text-secondary">{{ log.target_entity or '-' }}</td>
+                            <td class="font-monospace small text-muted">{{ log.ip_address or '-' }}</td>
+                            <td>
+                                {% if log.status == 'SUCCESS' %}
+                                    <span class="badge bg-success">SUCCESS</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ log.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="fs-7 text-secondary">{{ log.details or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-journal-x fs-1 d-block mb-2 text-secondary"></i>
+                                No audit log records found matching your filters.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if log_data.pages > 1 %}
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+        <span class="small text-muted">Showing page {{ log_data.page }} of {{ log_data.pages }}</span>
+        <nav aria-label="Audit log pagination">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item {% if log_data.page <= 1 %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('admin.audit_logs', page=log_data.page-1, action_category=selected_category, username=username_query, search=search_query) }}">Previous</a>
+                </li>
+                <li class="page-item disabled"><span class="page-link">{{ log_data.page }}</span></li>
+                <li class="page-item {% if log_data.page >= log_data.pages %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('admin.audit_logs', page=log_data.page+1, action_category=selected_category, username=username_query, search=search_query) }}">Next</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

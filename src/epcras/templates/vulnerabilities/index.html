@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}Vulnerability Database - EPCRAS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-bug me-2 text-danger"></i>Vulnerability Database</h2>
+        <p class="text-muted mb-0">Search, filter, and track software vulnerabilities and security advisories.</p>
+    </div>
+    {% if current_user.has_role('ADMINISTRATOR') %}
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('vulnerability.create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Add Vulnerability
+        </a>
+        <a href="{{ url_for('vulnerability.import_csv') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Import CSV
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Search & Filter Card -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body bg-light rounded">
+        <form method="GET" action="{{ url_for('vulnerability.index') }}" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="cve" class="form-label small fw-semibold text-secondary">Search by CVE</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" id="cve" name="cve" class="form-control" placeholder="e.g. CVE-2024-3094" value="{{ cve_q }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label for="software" class="form-label small fw-semibold text-secondary">Search by Software</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-app"></i></span>
+                    <input type="text" id="software" name="software" class="form-control" placeholder="e.g. Log4j, OpenSSL" value="{{ software_q }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label for="severity" class="form-label small fw-semibold text-secondary">Severity</label>
+                <select id="severity" name="severity" class="form-select form-select-sm">
+                    <option value="">All Severities</option>
+                    {% for sev in severities %}
+                        <option value="{{ sev }}" {% if severity_filter == sev %}selected{% endif %}>{{ sev }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="patch_available" class="form-label small fw-semibold text-secondary">Patch Status</label>
+                <select id="patch_available" name="patch_available" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    <option value="true" {% if patch_filter == 'true' %}selected{% endif %}>Patch Available</option>
+                    <option value="false" {% if patch_filter == 'false' %}selected{% endif %}>No Patch</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-dark w-100">
+                    <i class="bi bi-filter me-1"></i> Filter
+                </button>
+                <a href="{{ url_for('vulnerability.index') }}" class="btn btn-sm btn-outline-secondary" title="Reset Filters">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Vulnerabilities Table -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>CVE ID</th>
+                        <th>Software</th>
+                        <th>Vendor</th>
+                        <th class="text-center">CVSS</th>
+                        <th>Severity</th>
+                        <th class="text-center">Patch</th>
+                        <th class="text-center">Exploit</th>
+                        <th>Published</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if vulnerabilities %}
+                        {% for vuln in vulnerabilities %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('vulnerability.detail', vuln_id=vuln.id) }}" class="fw-bold text-decoration-none font-monospace">
+                                    {{ vuln.cve_id }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="fw-semibold">{{ vuln.software }}</span>
+                                {% if vuln.affected_versions %}
+                                    <small class="text-muted d-block fs-7">Affects: {{ vuln.affected_versions }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ vuln.vendor }}</td>
+                            <td class="text-center">
+                                <span class="badge {% if vuln.cvss_score >= 9.0 %}bg-danger{% elif vuln.cvss_score >= 7.0 %}bg-warning text-dark{% elif vuln.cvss_score >= 4.0 %}bg-info text-dark{% else %}bg-secondary{% endif %} fs-7 font-monospace">
+                                    {{ "%.1f"|format(vuln.cvss_score) }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if vuln.severity == 'CRITICAL' %}
+                                    <span class="badge bg-danger text-uppercase">Critical</span>
+                                {% elif vuln.severity == 'HIGH' %}
+                                    <span class="badge bg-warning text-dark text-uppercase">High</span>
+                                {% elif vuln.severity == 'MEDIUM' %}
+                                    <span class="badge bg-info text-dark text-uppercase">Medium</span>
+                                {% else %}
+                                    <span class="badge bg-secondary text-uppercase">Low</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if vuln.patch_available %}
+                                    <span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-check-circle me-1"></i>Yes</span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger"><i class="bi bi-x-circle me-1"></i>No</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if vuln.exploit_available %}
+                                    <span class="badge bg-danger text-white"><i class="bi bi-exclamation-triangle-fill me-1"></i>PoC/Exploit</span>
+                                {% else %}
+                                    <span class="badge bg-light text-secondary border">None</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if vuln.published_date %}
+                                    <small class="text-muted">{{ vuln.published_date.strftime('%Y-%m-%d') }}</small>
+                                {% else %}
+                                    <small class="text-muted">—</small>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('vulnerability.detail', vuln_id=vuln.id) }}" class="btn btn-outline-primary" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if current_user.has_role('ADMINISTRATOR') %}
+                                    <a href="{{ url_for('vulnerability.edit', vuln_id=vuln.id) }}" class="btn btn-outline-secondary" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form action="{{ url_for('vulnerability.delete', vuln_id=vuln.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete vulnerability {{ vuln.cve_id }}?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <button type="submit" class="btn btn-outline-danger" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4 text-muted">
+                                <i class="bi bi-shield-slash fs-3 d-block mb-2 text-secondary"></i>
+                                No vulnerability records found matching criteria.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if vulnerabilities %}
+    <div class="card-footer bg-white text-muted small">
+        Showing {{ vulnerabilities|length }} vulnerability record(s)
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

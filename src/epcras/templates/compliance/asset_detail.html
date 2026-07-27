@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Asset Compliance View - {{ detail.asset.hostname }} - EPCRAS{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{{ url_for('compliance.overview') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Back to Compliance Overview
+    </a>
+</div>
+
+<!-- Asset Header Card -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+        <div>
+            <h3 class="mb-0 fw-bold"><i class="bi bi-pc-display me-2 text-info"></i>{{ detail.asset.hostname }}</h3>
+            <small class="text-light opacity-75">IP: {{ detail.asset.ip_address }} | OS: {{ detail.asset.operating_system }} {{ detail.asset.os_version or '' }}</small>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div>
+                {% if detail.overall_status == 'COMPLIANT' %}
+                    <span class="badge bg-success fs-6 text-uppercase px-3 py-2"><i class="bi bi-check-circle-fill me-1"></i>Fully Compliant</span>
+                {% elif detail.overall_status == 'NON_COMPLIANT' %}
+                    <span class="badge bg-danger fs-6 text-uppercase px-3 py-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>Non-Compliant</span>
+                {% else %}
+                    <span class="badge bg-secondary fs-6 text-uppercase px-3 py-2"><i class="bi bi-question-circle-fill me-1"></i>Unknown Status</span>
+                {% endif %}
+            </div>
+            {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT', 'SECURITY_ANALYST') %}
+            <form action="{{ url_for('compliance.run_analysis') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="asset_id" value="{{ detail.asset.id }}"/>
+                <button type="submit" class="btn btn-sm btn-outline-info" title="Re-analyze this asset">
+                    <i class="bi bi-arrow-repeat me-1"></i> Re-Scan Asset
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body p-4">
+        <!-- Detected Non-Compliant Vulnerabilities Section -->
+        <h5 class="fw-bold text-secondary mb-3"><i class="bi bi-bug-fill me-2 text-danger"></i>Detected Vulnerabilities ({{ detail.findings|length }})</h5>
+        {% if detail.findings %}
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Software</th>
+                            <th>Installed Version</th>
+                            <th>CVE ID</th>
+                            <th class="text-center">CVSS</th>
+                            <th>Severity</th>
+                            <th>Fixed Version</th>
+                            <th class="text-center">Patch Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for finding in detail.findings %}
+                        <tr>
+                            <td><strong class="text-dark">{{ finding.software_name }}</strong></td>
+                            <td><code>{{ finding.installed_version }}</code></td>
+                            <td>
+                                <a href="{{ url_for('vulnerability.index', cve=finding.cve_id) }}" class="font-monospace fw-bold text-decoration-none">
+                                    {{ finding.cve_id }}
+                                </a>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge {% if finding.cvss_score >= 9.0 %}bg-danger{% elif finding.cvss_score >= 7.0 %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} font-monospace">
+                                    {{ "%.1f"|format(finding.cvss_score) }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if finding.severity == 'CRITICAL' %}
+                                    <span class="badge bg-danger">Critical</span>
+                                {% elif finding.severity == 'HIGH' %}
+                                    <span class="badge bg-warning text-dark">High</span>
+                                {% elif finding.severity == 'MEDIUM' %}
+                                    <span class="badge bg-info text-dark">Medium</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Low</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if finding.fixed_version %}
+                                    <span class="badge bg-success-subtle text-success border border-success">{{ finding.fixed_version }}</span>
+                                {% else %}
+                                    <span class="text-muted fs-7">No Fix</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if finding.patch_available %}
+                                    <span class="badge bg-success">Patch Available</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Unpatched</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-success d-flex align-items-center mb-4" role="alert">
+                <i class="bi bi-shield-check fs-4 me-3 text-success"></i>
+                <div>No active vulnerability findings detected on this asset!</div>
+            </div>
+        {% endif %}
+
+        <!-- Installed Software Inventory Status -->
+        <h5 class="fw-bold text-secondary mb-3"><i class="bi bi-box-seam me-2"></i>Installed Software Inventory</h5>
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Software Name</th>
+                        <th>Vendor</th>
+                        <th>Installed Version</th>
+                        <th>Compliance Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if detail.installed_software %}
+                        {% for item in detail.installed_software %}
+                        <tr>
+                            <td class="fw-semibold">{{ item.software.name if item.software else 'Unknown' }}</td>
+                            <td>{{ item.software.vendor if item.software else 'Unknown' }}</td>
+                            <td><code>{{ item.version }}</code></td>
+                            <td>
+                                {% if item.compliance_status == 'Compliant' %}
+                                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Compliant</span>
+                                {% elif item.compliance_status == 'Non-Compliant' %}
+                                    <span class="badge bg-danger"><i class="bi bi-exclamation-octagon me-1"></i>Non-Compliant</span>
+                                {% else %}
+                                    <span class="badge bg-secondary"><i class="bi bi-question-circle me-1"></i>Unknown</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-3 text-muted">No installed software linked to this asset.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

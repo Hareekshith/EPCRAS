@@ -3,55 +3,291 @@
 {% block title %}Dashboard - EPCRAS{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card shadow-sm border-0 bg-white p-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1 text-dark"><i class="bi bi-speedometer2 me-2 text-primary"></i>Executive Security Dashboard</h2>
+        <p class="text-muted mb-0">Welcome, {{ current_user.username }} | Real-time enterprise patch compliance and risk metrics.</p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('report.index') }}" class="btn btn-outline-primary shadow-sm">
+            <i class="bi bi-file-earmark-pdf me-1"></i> Reports Center
+        </a>
+        <a href="{{ url_for('compliance.overview') }}" class="btn btn-primary shadow-sm">
+            <i class="bi bi-shield-check me-1"></i> Patch Compliance Engine
+        </a>
+    </div>
+</div>
+
+<!-- Primary Metric Cards (Row 1) -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm bg-white p-3 h-100 border-start border-4 border-primary">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h3 class="fw-bold text-dark mb-1">Welcome, {{ current_user.username }}</h3>
-                    <p class="text-muted mb-0">Role: <span class="badge bg-primary fs-7">{{ current_user.role }}</span> | System Status: Active</p>
+                    <h6 class="text-uppercase text-muted mb-1 fs-7 fw-bold">Total IT Assets</h6>
+                    <h2 class="fw-bold mb-0 text-dark font-monospace">{{ metrics.total_assets }}</h2>
                 </div>
-                <div class="text-end">
-                    <span class="badge bg-success p-2"><i class="bi bi-check-circle-fill me-1"></i> Authenticated</span>
+                <div class="bg-primary-subtle text-primary p-3 rounded-circle">
+                    <i class="bi bi-pc-display fs-3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm bg-white p-3 h-100 border-start border-4 border-success">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-uppercase text-muted mb-1 fs-7 fw-bold">Compliant Assets</h6>
+                    <h2 class="fw-bold mb-0 text-success font-monospace">{{ metrics.compliant_assets }}</h2>
+                </div>
+                <div class="bg-success-subtle text-success p-3 rounded-circle">
+                    <i class="bi bi-check-circle-fill fs-3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm bg-white p-3 h-100 border-start border-4 border-danger">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-uppercase text-muted mb-1 fs-7 fw-bold">Non-Compliant Assets</h6>
+                    <h2 class="fw-bold mb-0 text-danger font-monospace">{{ metrics.non_compliant_assets }}</h2>
+                </div>
+                <div class="bg-danger-subtle text-danger p-3 rounded-circle">
+                    <i class="bi bi-exclamation-octagon-fill fs-3"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm bg-white p-3 h-100 border-start border-4 border-secondary">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-uppercase text-muted mb-1 fs-7 fw-bold">Unknown Assets</h6>
+                    <h2 class="fw-bold mb-0 text-secondary font-monospace">{{ metrics.unknown_assets }}</h2>
+                </div>
+                <div class="bg-light text-secondary p-3 rounded-circle border">
+                    <i class="bi bi-question-circle-fill fs-3"></i>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Secondary Metric Cards (Row 2) -->
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm bg-primary text-white p-3">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="text-uppercase mb-1 opacity-75">IT Assets</h6>
-                    <h2 class="fw-bold mb-0">0</h2>
-                </div>
-                <i class="bi bi-pc-display fs-1 opacity-50"></i>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm bg-white p-3 h-100">
+            <span class="text-muted small fw-semibold text-uppercase">Compliance Rate</span>
+            <div class="d-flex align-items-baseline gap-2 mt-1">
+                <span class="display-6 fw-bold font-monospace {% if metrics.overall_compliance_percentage >= 80 %}text-success{% elif metrics.overall_compliance_percentage >= 50 %}text-warning{% else %}text-danger{% endif %}">
+                    {{ metrics.overall_compliance_percentage }}%
+                </span>
+            </div>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar {% if metrics.overall_compliance_percentage >= 80 %}bg-success{% elif metrics.overall_compliance_percentage >= 50 %}bg-warning{% else %}bg-danger{% endif %}" style="width: {{ metrics.overall_compliance_percentage }}%"></div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm bg-info text-white p-3">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="text-uppercase mb-1 opacity-75">Software Catalog</h6>
-                    <h2 class="fw-bold mb-0">0</h2>
-                </div>
-                <i class="bi bi-app-indicator fs-1 opacity-50"></i>
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm bg-white p-3 h-100">
+            <span class="text-muted small fw-semibold text-uppercase">Critical Vulnerabilities</span>
+            <div class="d-flex align-items-baseline gap-2 mt-1">
+                <span class="display-6 fw-bold font-monospace text-danger">{{ metrics.critical_vulnerabilities }}</span>
+                <span class="text-muted fs-7">Active CVEs</span>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm bg-warning text-dark p-3">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="text-uppercase mb-1 opacity-75">Active CVEs</h6>
-                    <h2 class="fw-bold mb-0">0</h2>
-                </div>
-                <i class="bi bi-bug-fill fs-1 opacity-50"></i>
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm bg-white p-3 h-100">
+            <span class="text-muted small fw-semibold text-uppercase">High-Risk Assets</span>
+            <div class="d-flex align-items-baseline gap-2 mt-1">
+                <span class="display-6 fw-bold font-monospace text-warning">{{ metrics.high_risk_assets }}</span>
+                <span class="text-muted fs-7">Require Attention</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm bg-white p-3 h-100">
+            <span class="text-muted small fw-semibold text-uppercase">Patches Available</span>
+            <div class="d-flex align-items-baseline gap-2 mt-1">
+                <span class="display-6 fw-bold font-monospace text-success">{{ metrics.vulnerabilities_with_patches }}</span>
+                <span class="text-muted fs-7">Remediable</span>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Chart Visualizations Grid -->
+<div class="row g-4 mb-4">
+    <!-- Chart 1: Compliance Distribution -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-pie-chart-fill me-2 text-info"></i>Compliance Status Distribution</h5>
+            </div>
+            <div class="card-body d-flex justify-content-center align-items-center">
+                <div style="width: 100%; max-height: 280px;">
+                    <canvas id="complianceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 2: Vulnerability Severity Distribution -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-bar-chart-fill me-2 text-danger"></i>Vulnerability Severity Exposure</h5>
+            </div>
+            <div class="card-body d-flex justify-content-center align-items-center">
+                <div style="width: 100%; max-height: 280px;">
+                    <canvas id="severityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 3: Asset Criticality Distribution -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-shield-lock-fill me-2 text-primary"></i>Asset Criticality Distribution</h5>
+            </div>
+            <div class="card-body d-flex justify-content-center align-items-center">
+                <div style="width: 100%; max-height: 280px;">
+                    <canvas id="criticalityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 4: Department-wise Compliance -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-building me-2 text-success"></i>Department-Wise Compliance Status</h5>
+            </div>
+            <div class="card-body d-flex justify-content-center align-items-center">
+                <div style="width: 100%; max-height: 280px;">
+                    <canvas id="departmentChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const chartData = JSON.parse('{{ charts_json|safe }}');
+
+        // 1. Compliance Distribution (Doughnut Chart)
+        const compData = chartData.compliance_distribution;
+        new Chart(document.getElementById('complianceChart'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(compData),
+                datasets: [{
+                    data: Object.values(compData),
+                    backgroundColor: ['#10b981', '#ef4444', '#64748b'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // 2. Vulnerability Severity Exposure (Bar Chart)
+        const sevData = chartData.severity_distribution;
+        new Chart(document.getElementById('severityChart'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(sevData),
+                datasets: [{
+                    label: 'Vulnerabilities',
+                    data: Object.values(sevData),
+                    backgroundColor: ['#dc2626', '#f59e0b', '#06b6d4', '#64748b'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+
+        // 3. Asset Criticality (Doughnut Chart)
+        const critData = chartData.asset_criticality;
+        new Chart(document.getElementById('criticalityChart'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(critData),
+                datasets: [{
+                    data: Object.values(critData),
+                    backgroundColor: ['#dc2626', '#f59e0b', '#0284c7', '#64748b'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // 4. Department-wise Compliance (Grouped Bar Chart)
+        const deptData = chartData.department_compliance;
+        const deptLabels = Object.keys(deptData);
+        const compDept = deptLabels.map(d => deptData[d].compliant);
+        const nonCompDept = deptLabels.map(d => deptData[d].non_compliant);
+        const unkDept = deptLabels.map(d => deptData[d].unknown);
+
+        new Chart(document.getElementById('departmentChart'), {
+            type: 'bar',
+            data: {
+                labels: deptLabels,
+                datasets: [
+                    { label: 'Compliant', data: compDept, backgroundColor: '#10b981', borderRadius: 4 },
+                    { label: 'Non-Compliant', data: nonCompDept, backgroundColor: '#ef4444', borderRadius: 4 },
+                    { label: 'Unknown', data: unkDept, backgroundColor: '#64748b', borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                },
+                scales: {
+                    x: { stacked: false },
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}

@@ -69,7 +69,7 @@ def create_asset(data: dict) -> Asset:
     db.session.commit()
 
     log_audit_event(
-        action_category='ASSET',
+        action_category='ASSET_CREATED',
         target_entity=f"Asset:{asset.hostname}",
         details=f"Created asset {asset.hostname} (IP: {asset.ip_address}, Criticality: {asset.criticality})",
         status='SUCCESS'
@@ -103,7 +103,7 @@ def update_asset(asset_id: int, data: dict) -> Asset:
     db.session.commit()
 
     log_audit_event(
-        action_category='ASSET',
+        action_category='ASSET_UPDATED',
         target_entity=f"Asset:{asset.hostname}",
         details=f"Updated asset metadata for {asset.hostname}",
         status='SUCCESS'
@@ -121,12 +121,13 @@ def delete_asset(asset_id: int) -> bool:
     db.session.commit()
 
     log_audit_event(
-        action_category='ASSET',
+        action_category='ASSET_DELETED',
         target_entity=f"Asset:{hostname}",
         details=f"Deleted asset {hostname} (ID: {asset_id})",
         status='SUCCESS'
     )
     return True
+
 
 def get_all_departments():
     return Department.query.order_by(Department.name.asc()).all()

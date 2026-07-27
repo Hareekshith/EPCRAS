@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}System Administration - EPCRAS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1 text-dark"><i class="bi bi-gear-wide-connected me-2 text-primary"></i>System Administration Center</h2>
+        <p class="text-muted mb-0">System health overview, user access control, audit logging, and core operational controls.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin.users') }}" class="btn btn-primary shadow-sm">
+            <i class="bi bi-people me-1"></i> User Management
+        </a>
+        <a href="{{ url_for('admin.audit_logs') }}" class="btn btn-outline-dark shadow-sm">
+            <i class="bi bi-journal-text me-1"></i> Audit Log Viewer
+        </a>
+    </div>
+</div>
+
+<!-- Overview Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm bg-white p-3 h-100 border-start border-4 border-primary">
+            <span class="text-uppercase text-muted small fw-bold">Total Users</span>
+            <h3 class="fw-bold mb-0 text-primary font-monospace mt-1">{{ total_users }}</h3>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm bg-white p-3 h-100 border-start border-4 border-success">
+            <span class="text-uppercase text-muted small fw-bold">Active Accounts</span>
+            <h3 class="fw-bold mb-0 text-success font-monospace mt-1">{{ active_users }}</h3>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm bg-white p-3 h-100 border-start border-4 border-info">
+            <span class="text-uppercase text-muted small fw-bold">Total IT Assets</span>
+            <h3 class="fw-bold mb-0 text-info font-monospace mt-1">{{ total_assets }}</h3>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm bg-white p-3 h-100 border-start border-4 border-danger">
+            <span class="text-uppercase text-muted small fw-bold">Vulnerabilities</span>
+            <h3 class="fw-bold mb-0 text-danger font-monospace mt-1">{{ total_vulnerabilities }}</h3>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm bg-white p-3 h-100 border-start border-4 border-warning">
+            <span class="text-uppercase text-muted small fw-bold">Departments</span>
+            <h3 class="fw-bold mb-0 text-warning font-monospace mt-1">{{ total_departments }}</h3>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-0 shadow-sm bg-white p-3 h-100 border-start border-4 border-secondary">
+            <span class="text-uppercase text-muted small fw-bold">Audit Records</span>
+            <h3 class="fw-bold mb-0 text-secondary font-monospace mt-1">{{ total_audit_logs }}</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Quick Access Grid -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary-subtle text-primary p-3 rounded me-3 fs-3">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark">User & RBAC Management</h5>
+                            <small class="text-muted">Manage system users, roles, & access states</small>
+                        </div>
+                    </div>
+                    <p class="text-muted fs-7">Create administrator, analyst, support, and auditor accounts. Assign RBAC roles and enable or disable access instantly.</p>
+                </div>
+                <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary btn-sm">Manage Users & Roles &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-dark-subtle text-dark p-3 rounded me-3 fs-3">
+                            <i class="bi bi-journal-check"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark">Audit Log Viewer</h5>
+                            <small class="text-muted">Security activity & system trace logs</small>
+                        </div>
+                    </div>
+                    <p class="text-muted fs-7">Inspect complete audit trails for logins, asset changes, software installations, compliance runs, and report exports.</p>
+                </div>
+                <a href="{{ url_for('admin.audit_logs') }}" class="btn btn-outline-dark btn-sm">View Audit Logs &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-danger-subtle text-danger p-3 rounded me-3 fs-3">
+                            <i class="bi bi-bug-fill"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark">Vulnerability Database</h5>
+                            <small class="text-muted">Vulnerability management & CSV import</small>
+                        </div>
+                    </div>
+                    <p class="text-muted fs-7">Access the vulnerability database to register CVE records, edit CVSS scores and fix versions, or perform bulk CSV imports.</p>
+                </div>
+                <a href="{{ url_for('vulnerability.index') }}" class="btn btn-outline-danger btn-sm">Vulnerability Manager &rarr;</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Audit Logs Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history me-2 text-primary"></i>Recent System Audit Activity</h5>
+        <a href="{{ url_for('admin.audit_logs') }}" class="btn btn-sm btn-link text-decoration-none">View All Audit Logs</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Timestamp (UTC)</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Target Entity</th>
+                        <th>IP Address</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if recent_logs %}
+                        {% for log in recent_logs %}
+                        <tr>
+                            <td class="font-monospace small text-muted">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td class="fw-semibold">{{ log.username }}</td>
+                            <td><span class="badge bg-secondary text-uppercase fs-7">{{ log.action_category }}</span></td>
+                            <td class="font-monospace small">{{ log.target_entity or '-' }}</td>
+                            <td class="font-monospace small">{{ log.ip_address or '-' }}</td>
+                            <td>
+                                {% if log.status == 'SUCCESS' %}
+                                    <span class="badge bg-success">Success</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ log.status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No audit logs recorded yet.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

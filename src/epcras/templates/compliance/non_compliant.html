@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Non-Compliant Assets & Vulnerabilities - EPCRAS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1 text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Non-Compliant Vulnerability Exposure</h2>
+        <p class="text-muted mb-0">Detailed list of software installations matching active security advisories.</p>
+    </div>
+    <a href="{{ url_for('compliance.overview') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Back to Compliance Dashboard
+    </a>
+</div>
+
+<!-- Filter Card -->
+<div class="card shadow-sm border-0 mb-4 bg-light">
+    <div class="card-body py-3">
+        <form method="GET" action="{{ url_for('compliance.non_compliant') }}" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="software" class="form-label small fw-semibold text-secondary">Search by Software</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" id="software" name="software" class="form-control" placeholder="e.g. Log4j, OpenSSL" value="{{ software_q }}">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label for="severity" class="form-label small fw-semibold text-secondary">Filter by Severity</label>
+                <select id="severity" name="severity" class="form-select form-select-sm">
+                    <option value="">All Severities</option>
+                    {% for sev in severities %}
+                        <option value="{{ sev }}" {% if severity_filter == sev %}selected{% endif %}>{{ sev }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-dark w-100"><i class="bi bi-filter me-1"></i> Filter</button>
+                <a href="{{ url_for('compliance.non_compliant') }}" class="btn btn-sm btn-outline-secondary" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Findings Table -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Asset Hostname</th>
+                        <th>Software</th>
+                        <th>Installed Version</th>
+                        <th>CVE ID</th>
+                        <th class="text-center">CVSS</th>
+                        <th>Severity</th>
+                        <th>Fixed Version</th>
+                        <th class="text-center">Patch Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if findings %}
+                        {% for finding in findings %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('compliance.asset_compliance', asset_id=finding.asset_id) }}" class="fw-bold text-decoration-none">
+                                    {{ finding.asset.hostname if finding.asset else 'Asset #' + finding.asset_id|string }}
+                                </a>
+                            </td>
+                            <td><span class="fw-semibold">{{ finding.software_name }}</span></td>
+                            <td><code class="text-dark">{{ finding.installed_version }}</code></td>
+                            <td>
+                                {% if finding.cve_id %}
+                                    <a href="{{ url_for('vulnerability.index', cve=finding.cve_id) }}" class="font-monospace text-decoration-none fw-bold">
+                                        {{ finding.cve_id }}
+                                    </a>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if finding.cvss_score %}
+                                    <span class="badge {% if finding.cvss_score >= 9.0 %}bg-danger{% elif finding.cvss_score >= 7.0 %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} font-monospace">
+                                        {{ "%.1f"|format(finding.cvss_score) }}
+                                    </span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if finding.severity == 'CRITICAL' %}
+                                    <span class="badge bg-danger">Critical</span>
+                                {% elif finding.severity == 'HIGH' %}
+                                    <span class="badge bg-warning text-dark">High</span>
+                                {% elif finding.severity == 'MEDIUM' %}
+                                    <span class="badge bg-info text-dark">Medium</span>
+                                {% elif finding.severity == 'LOW' %}
+                                    <span class="badge bg-secondary">Low</span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if finding.fixed_version %}
+                                    <span class="badge bg-success-subtle text-success border border-success">{{ finding.fixed_version }}</span>
+                                {% else %}
+                                    <span class="text-muted fs-7">No Fix Available</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if finding.patch_available %}
+                                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Patch Available</span>
+                                {% else %}
+                                    <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Unpatched</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                <i class="bi bi-shield-check fs-2 text-success d-block mb-2"></i>
+                                No non-compliant vulnerability findings matching filters.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

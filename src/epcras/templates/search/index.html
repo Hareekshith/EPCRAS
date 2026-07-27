@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Centralized Search & Filter - EPCRAS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1 text-dark"><i class="bi bi-search me-2 text-primary"></i>Centralized System Search</h2>
+        <p class="text-muted mb-0">Multi-parameter search and filtering across IT Assets, Vulnerabilities, and Compliance Findings.</p>
+    </div>
+</div>
+
+<!-- Search & Multi-Filter Form -->
+<div class="card shadow-sm border-0 mb-4 bg-light">
+    <div class="card-body p-4">
+        <form method="GET" action="{{ url_for('search.index') }}" class="row g-3">
+            <div class="col-md-3">
+                <label for="hostname" class="form-label small fw-semibold text-secondary">Hostname</label>
+                <input type="text" id="hostname" name="hostname" class="form-control form-control-sm" placeholder="e.g. PC-DEV-01" value="{{ params.hostname }}">
+            </div>
+            <div class="col-md-3">
+                <label for="ip_address" class="form-label small fw-semibold text-secondary">IP Address</label>
+                <input type="text" id="ip_address" name="ip_address" class="form-control form-control-sm" placeholder="e.g. 192.168.1.10" value="{{ params.ip_address }}">
+            </div>
+            <div class="col-md-3">
+                <label for="department" class="form-label small fw-semibold text-secondary">Department</label>
+                <input type="text" id="department" name="department" class="form-control form-control-sm" placeholder="e.g. Engineering" value="{{ params.department }}">
+            </div>
+            <div class="col-md-3">
+                <label for="software" class="form-label small fw-semibold text-secondary">Software</label>
+                <input type="text" id="software" name="software" class="form-control form-control-sm" placeholder="e.g. Log4j, Firefox" value="{{ params.software }}">
+            </div>
+
+            <div class="col-md-3">
+                <label for="cve_id" class="form-label small fw-semibold text-secondary">CVE ID</label>
+                <input type="text" id="cve_id" name="cve_id" class="form-control form-control-sm" placeholder="e.g. CVE-2024-3094" value="{{ params.cve_id }}">
+            </div>
+            <div class="col-md-3">
+                <label for="severity" class="form-label small fw-semibold text-secondary">Severity</label>
+                <select id="severity" name="severity" class="form-select form-select-sm">
+                    <option value="">All Severities</option>
+                    {% for sev in severities %}
+                        <option value="{{ sev }}" {% if params.severity == sev %}selected{% endif %}>{{ sev }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="compliance_status" class="form-label small fw-semibold text-secondary">Compliance Status</label>
+                <select id="compliance_status" name="compliance_status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    {% for status in compliance_statuses %}
+                        <option value="{{ status }}" {% if params.compliance_status == status %}selected{% endif %}>{{ status }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="criticality" class="form-label small fw-semibold text-secondary">Asset Criticality</label>
+                <select id="criticality" name="criticality" class="form-select form-select-sm">
+                    <option value="">All Criticalities</option>
+                    {% for crit in criticalities %}
+                        <option value="{{ crit }}" {% if params.criticality == crit %}selected{% endif %}>{{ crit }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-12 d-flex justify-content-end gap-2 pt-2">
+                <a href="{{ url_for('search.index') }}" class="btn btn-sm btn-outline-secondary">Reset Filters</a>
+                <button type="submit" class="btn btn-sm btn-primary px-4"><i class="bi bi-search me-1"></i> Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Search Results -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0"><i class="bi bi-list-stars me-2"></i>Search Results ({{ results.total }})</h5>
+        <small class="text-light opacity-75">Page {{ results.page }} of {{ results.pages }}</small>
+    </div>
+    <div class="card-body p-0">
+        {% if results.results_list %}
+            <div class="list-group list-group-flush">
+                {% for item in results.results_list %}
+
+                <div class="list-group-item p-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-dark text-uppercase fs-7">{{ item.type }}</span>
+                            <a href="{{ item.link_url }}" class="fw-bold text-decoration-none text-primary fs-6">
+                                {{ item.title }}
+                            </a>
+                        </div>
+                        <small class="text-muted d-block">{{ item.subtitle }}</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="badge bg-{{ item.badge_color }} text-uppercase px-3 py-2">{{ item.status }}</span>
+                        <a href="{{ item.link_url }}" class="btn btn-sm btn-outline-primary" title="View Detail">
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-search fs-1 d-block mb-2 text-secondary"></i>
+                No matching records found. Adjust your search parameters above.
+            </div>
+        {% endif %}
+    </div>
+    {% if results.pages > 1 %}
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+        <span class="small text-muted">Showing page {{ results.page }} of {{ results.pages }}</span>
+        <nav aria-label="Search pagination">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item {% if results.page <= 1 %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('search.index', page=results.page-1, **params) }}">Previous</a>
+                </li>
+                <li class="page-item disabled"><span class="page-link">{{ results.page }}</span></li>
+                <li class="page-item {% if results.page >= results.pages %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('search.index', page=results.page+1, **params) }}">Next</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

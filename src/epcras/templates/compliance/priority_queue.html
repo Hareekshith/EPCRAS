@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Patch Priority Queue - EPCRAS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1 text-dark"><i class="bi bi-list-ol me-2 text-primary"></i>Transparent Patch Priority Queue</h2>
+        <p class="text-muted mb-0">Deterministic, score-based remediation prioritization derived from CVSS severity, asset criticality, exploits, blast radius, vulnerability age, and patch availability.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('report.export_report', report_type='PATCH_PRIORITY', export_format='pdf') }}" class="btn btn-outline-danger shadow-sm">
+            <i class="bi bi-file-earmark-pdf me-1"></i> Export Priority PDF
+        </a>
+        <a href="{{ url_for('report.export_report', report_type='PATCH_PRIORITY', export_format='csv') }}" class="btn btn-outline-success shadow-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i> Export Priority CSV
+        </a>
+    </div>
+</div>
+
+<!-- Priority Scale Explainer Box -->
+<div class="card border-0 shadow-sm mb-4 bg-light">
+    <div class="card-body p-3">
+        <div class="row text-center g-2">
+            <div class="col-md-3">
+                <div class="p-2 rounded bg-danger text-white fw-bold">75 – 100: CRITICAL</div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-2 rounded bg-warning text-dark fw-bold">50 – 74: HIGH</div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-2 rounded bg-info text-dark fw-bold">25 – 49: MEDIUM</div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-2 rounded bg-secondary text-white fw-bold">0 – 24: LOW</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Priority Queue List -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0"><i class="bi bi-shield-shaded me-2"></i>Prioritized Remediations ({{ queue|length }})</h5>
+        <small class="text-light opacity-75">Sorted Highest Priority First</small>
+    </div>
+    <div class="card-body p-0">
+        {% if queue %}
+            <div class="list-group list-group-flush">
+                {% for item in queue %}
+                <div class="list-group-item p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="text-center p-3 rounded-circle {% if item.score >= 75 %}bg-danger-subtle text-danger border border-danger{% elif item.score >= 50 %}bg-warning-subtle text-warning-emphasis border border-warning{% elif item.score >= 25 %}bg-info-subtle text-info-emphasis border border-info{% else %}bg-light text-secondary border{% endif %}" style="min-width: 75px;">
+                                    <span class="display-6 fw-bold font-monospace d-block lh-1">{{ item.score }}</span>
+                                    <span class="small text-uppercase fw-bold fs-7">/ 100</span>
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('vulnerability.detail', vuln_id=item.vulnerability_id) }}" class="fw-bold text-decoration-none text-dark fs-5">
+                                        {{ item.cve_id }}
+                                    </a>
+                                    <div class="mt-1">
+                                        {% if item.priority == 'CRITICAL' %}
+                                            <span class="badge bg-danger text-uppercase">CRITICAL PRIORITY</span>
+                                        {% elif item.priority == 'HIGH' %}
+                                            <span class="badge bg-warning text-dark text-uppercase">HIGH PRIORITY</span>
+                                        {% elif item.priority == 'MEDIUM' %}
+                                            <span class="badge bg-info text-dark text-uppercase">MEDIUM PRIORITY</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary text-uppercase">LOW PRIORITY</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <h6 class="fw-bold text-dark mb-1"><i class="bi bi-box-seam me-1 text-primary"></i>{{ item.software }}</h6>
+                            <small class="text-muted d-block">Vendor: {{ item.vendor }} | Recommended Fix: <span class="badge bg-success font-monospace">{{ item.fixed_version }}</span></small>
+                            <small class="text-muted d-block">Impacted Infrastructure: <strong class="text-dark">{{ item.affected_assets_count }} Asset(s)</strong></small>
+                        </div>
+
+                        <div class="col-md-5">
+                            <div class="bg-light p-3 rounded border">
+                                <span class="fw-bold text-secondary fs-7 text-uppercase d-block mb-1"><i class="bi bi-calculator me-1"></i>Score Factor Breakdown:</span>
+                                <ul class="list-unstyled mb-0 small text-dark">
+                                    {% for exp in item.explanations %}
+                                        <li class="mb-1"><i class="bi bi-check2-circle text-primary me-1"></i>{{ exp }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-check-circle fs-1 d-block mb-2 text-success"></i>
+                No prioritized patch queue items. All vulnerabilities are remediated or unassigned.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

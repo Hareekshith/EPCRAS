@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - EPCRAS{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{{ url_for('vulnerability.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Back to Vulnerabilities
+    </a>
+</div>
+
+<div class="card shadow-sm border-0 max-w-700 mx-auto">
+    <div class="card-header bg-dark text-white py-3">
+        <h4 class="mb-0"><i class="bi bi-shield-exclamation me-2"></i>{{ title }}</h4>
+    </div>
+    <div class="card-body p-4">
+        <form method="POST" action="">
+            {{ form.hidden_tag() }}
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="cve_id" class="form-label fw-semibold">CVE ID <span class="text-danger">*</span></label>
+                    {{ form.cve_id(class="form-control" + (" is-invalid" if form.cve_id.errors else "")) }}
+                    {% for error in form.cve_id.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                    <small class="form-text text-muted">Format: CVE-YYYY-XXXX (e.g., CVE-2024-3094)</small>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="severity" class="form-label fw-semibold">Severity <span class="text-danger">*</span></label>
+                    {{ form.severity(class="form-select" + (" is-invalid" if form.severity.errors else "")) }}
+                    {% for error in form.severity.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="software" class="form-label fw-semibold">Software Name <span class="text-danger">*</span></label>
+                    {{ form.software(class="form-control" + (" is-invalid" if form.software.errors else "")) }}
+                    {% for error in form.software.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="vendor" class="form-label fw-semibold">Vendor <span class="text-danger">*</span></label>
+                    {{ form.vendor(class="form-control" + (" is-invalid" if form.vendor.errors else "")) }}
+                    {% for error in form.vendor.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="cvss_score" class="form-label fw-semibold">CVSS Score (0.0 - 10.0) <span class="text-danger">*</span></label>
+                    {{ form.cvss_score(class="form-control" + (" is-invalid" if form.cvss_score.errors else "")) }}
+                    {% for error in form.cvss_score.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="published_date" class="form-label fw-semibold">Published Date</label>
+                    {{ form.published_date(class="form-control" + (" is-invalid" if form.published_date.errors else "")) }}
+                    {% for error in form.published_date.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="affected_versions" class="form-label fw-semibold">Affected Versions / Range</label>
+                    {{ form.affected_versions(class="form-control" + (" is-invalid" if form.affected_versions.errors else "")) }}
+                    {% for error in form.affected_versions.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="fixed_version" class="form-label fw-semibold">Fixed Version</label>
+                    {{ form.fixed_version(class="form-control" + (" is-invalid" if form.fixed_version.errors else "")) }}
+                    {% for error in form.fixed_version.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-12">
+                    <label for="description" class="form-label fw-semibold">Description</label>
+                    {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else "")) }}
+                    {% for error in form.description.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-6">
+                    <div class="form-check form-switch mt-2">
+                        {{ form.patch_available(class="form-check-input") }}
+                        <label class="form-check-label fw-semibold" for="patch_available">Patch Available</label>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="form-check form-switch mt-2">
+                        {{ form.exploit_available(class="form-check-input") }}
+                        <label class="form-check-label fw-semibold" for="exploit_available">Exploit / PoC Available</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                <a href="{{ url_for('vulnerability.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                {{ form.submit(class="btn btn-primary px-4") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

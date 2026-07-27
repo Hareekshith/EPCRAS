@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Notifications - EPCRAS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1 text-dark"><i class="bi bi-bell me-2 text-primary"></i>In-App System Notifications</h2>
+        <p class="text-muted mb-0">Alerts for critical vulnerabilities, non-compliant assets, and compliance scan updates.</p>
+    </div>
+    {% if unread_count > 0 %}
+    <form action="{{ url_for('notification.read_all') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-check-all me-1"></i> Mark All as Read
+        </button>
+    </form>
+    {% endif %}
+</div>
+
+<!-- Filter Tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link {% if not filter_read %}active{% endif %}" href="{{ url_for('notification.index') }}">
+            All Notifications
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if filter_read == 'false' %}active{% endif %}" href="{{ url_for('notification.index', is_read='false') }}">
+            Unread <span class="badge bg-danger rounded-pill">{{ unread_count }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if filter_read == 'true' %}active{% endif %}" href="{{ url_for('notification.index', is_read='true') }}">
+            Read
+        </a>
+    </li>
+</ul>
+
+<!-- Notifications List -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        {% if notifications %}
+            <div class="list-group list-group-flush">
+                {% for notif in notifications %}
+                <div class="list-group-item p-3 {% if not notif.is_read %}bg-light border-start border-4 border-danger{% endif %} d-flex justify-content-between align-items-center">
+                    <div class="pe-3">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            {% if notif.severity == 'CRITICAL' %}
+                                <span class="badge bg-danger text-uppercase">Critical</span>
+                            {% elif notif.severity == 'HIGH' %}
+                                <span class="badge bg-warning text-dark text-uppercase">High</span>
+                            {% elif notif.severity == 'WARNING' %}
+                                <span class="badge bg-info text-dark text-uppercase">Warning</span>
+                            {% else %}
+                                <span class="badge bg-secondary text-uppercase">Info</span>
+                            {% endif %}
+
+                            {% if notif.link_url %}
+                                <a href="{{ notif.link_url }}" class="fw-bold text-decoration-none text-dark fs-6">
+                                    {{ notif.title }}
+                                </a>
+                            {% else %}
+                                <span class="fw-bold text-dark fs-6">{{ notif.title }}</span>
+                            {% endif %}
+
+                            {% if not notif.is_read %}
+                                <span class="badge bg-danger rounded-pill fs-7">New</span>
+                            {% endif %}
+                        </div>
+
+                        <p class="mb-1 text-secondary fs-7">{{ notif.message }}</p>
+                        <small class="text-muted fs-7"><i class="bi bi-clock me-1"></i>{{ notif.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</small>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        {% if notif.link_url %}
+                            <a href="{{ notif.link_url }}" class="btn btn-sm btn-outline-primary" title="View Related Record">
+                                View <i class="bi bi-arrow-right"></i>
+                            </a>
+                        {% endif %}
+
+                        {% if not notif.is_read %}
+                            <form action="{{ url_for('notification.read_single', notification_id=notif.id) }}" method="POST" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Mark as read">
+                                    <i class="bi bi-check"></i>
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-bell-slash fs-1 d-block mb-2 text-secondary"></i>
+                No notifications found.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

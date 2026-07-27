@@ -61,7 +61,7 @@ def add_installed_software(asset_id: int, software_id: int, version: str, instal
     db.session.commit()
 
     log_audit_event(
-        action_category='SOFTWARE',
+        action_category='SOFTWARE_UPDATED',
         target_entity=f"Asset:{asset.hostname}",
         details=f"Linked software '{sw.name}' ({version_clean}) to asset {asset.hostname}",
         status='SUCCESS'
@@ -81,11 +81,12 @@ def remove_installed_software(installed_sw_id: int) -> bool:
     db.session.commit()
 
     log_audit_event(
-        action_category='SOFTWARE',
+        action_category='SOFTWARE_UPDATED',
         target_entity=f"Asset:{asset_hostname}",
         details=f"Removed software '{sw_name}' ({version}) from asset {asset_hostname}",
         status='SUCCESS'
     )
+
     return True
 
 def import_software_csv(file_stream) -> dict:
