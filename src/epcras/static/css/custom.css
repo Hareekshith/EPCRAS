@@ -1,0 +1,607 @@
+/* ==============================================================================
+   EPCRAS Modern Enterprise Design System & Styling
+   ============================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+    --epcras-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --epcras-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+
+    /* Color Palette */
+    --epcras-primary: #0f172a;
+    --epcras-primary-hover: #1e293b;
+    --epcras-accent: #0284c7;
+    --epcras-accent-hover: #0369a1;
+    --epcras-accent-gradient: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+    
+    --epcras-bg: #f8fafc;
+    --epcras-surface: #ffffff;
+    --epcras-card-border: #e2e8f0;
+    --epcras-card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    --epcras-card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+
+    /* Text Colors */
+    --epcras-text-main: #0f172a;
+    --epcras-text-muted: #64748b;
+    --epcras-text-subtle: #94a3b8;
+
+    /* Severity & Status Colors */
+    --epcras-critical: #dc2626;
+    --epcras-critical-bg: #fef2f2;
+    --epcras-high: #ea580c;
+    --epcras-high-bg: #fff7ed;
+    --epcras-medium: #d97706;
+    --epcras-medium-bg: #fffbeb;
+    --epcras-low: #2563eb;
+    --epcras-low-bg: #eff6ff;
+    --epcras-compliant: #16a34a;
+    --epcras-compliant-bg: #f0fdf4;
+    --epcras-unknown: #64748b;
+    --epcras-unknown-bg: #f1f5f9;
+}
+
+/* Base Document Styling */
+body {
+    background-color: var(--epcras-bg);
+    color: var(--epcras-text-main);
+    font-family: var(--epcras-font);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+code, pre, .font-monospace {
+    font-family: var(--epcras-mono) !important;
+}
+
+/* ==============================================================================
+   Navigation Bar
+   ============================================================================== */
+.navbar-epcras {
+    background: rgba(15, 23, 42, 0.96) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+}
+
+.navbar-epcras .navbar-brand {
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+    color: #ffffff !important;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.navbar-epcras .brand-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--epcras-accent-gradient);
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(2, 132, 199, 0.4);
+}
+
+.navbar-epcras .nav-link {
+    color: #94a3b8 !important;
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 0.45rem 0.75rem !important;
+    border-radius: 6px;
+    transition: all 0.15s ease-in-out;
+}
+
+.navbar-epcras .nav-link:hover {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.navbar-epcras .nav-link.active {
+    color: #ffffff !important;
+    background: rgba(2, 132, 199, 0.2);
+    border: 1px solid rgba(2, 132, 199, 0.3);
+}
+
+/* Role Badges in Navbar */
+.role-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0.35em 0.7em;
+    border-radius: 6px;
+}
+
+.role-badge.badge-admin {
+    background-color: #6366f1;
+    color: #ffffff;
+}
+
+.role-badge.badge-analyst {
+    background-color: #0284c7;
+    color: #ffffff;
+}
+
+.role-badge.badge-support {
+    background-color: #0d9488;
+    color: #ffffff;
+}
+
+.role-badge.badge-auditor {
+    background-color: #475569;
+    color: #ffffff;
+}
+
+/* ==============================================================================
+   Cards & Content Surfaces
+   ============================================================================== */
+.card {
+    background-color: var(--epcras-surface);
+    border: 1px solid var(--epcras-card-border);
+    border-radius: 12px;
+    box-shadow: var(--epcras-card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+    box-shadow: var(--epcras-card-shadow-hover);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    background-color: var(--epcras-surface);
+    border-bottom: 1px solid var(--epcras-card-border);
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+}
+
+/* Dashboard Metric Cards */
+.metric-card {
+    border-radius: 12px;
+    border: 1px solid var(--epcras-card-border);
+    background: #ffffff;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.metric-card .metric-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.metric-value {
+    font-size: 1.85rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--epcras-text-muted);
+}
+
+/* ==============================================================================
+   Buttons & Form Controls
+   ============================================================================== */
+.btn {
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 0.475rem 0.95rem;
+    border-radius: 8px;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-primary {
+    background: var(--epcras-accent-gradient);
+    border: none;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(2, 132, 199, 0.25);
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background: linear-gradient(135deg, #0369a1 0%, #1d4ed8 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 8px rgba(2, 132, 199, 0.35);
+    transform: translateY(-1px);
+}
+
+.form-control, .form-select {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.85rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #0284c7;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.form-label {
+    font-size: 0.825rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.35rem;
+}
+
+/* ==============================================================================
+   Modern Data Tables
+   ============================================================================== */
+.table-responsive {
+    border-radius: 10px;
+    border: 1px solid var(--epcras-card-border);
+    overflow: hidden;
+}
+
+.table {
+    margin-bottom: 0;
+    font-size: 0.875rem;
+}
+
+.table thead th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--epcras-card-border);
+    padding: 0.8rem 1rem;
+}
+
+.table tbody td {
+    padding: 0.85rem 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+/* ==============================================================================
+   Pill Status Badges
+   ============================================================================== */
+.badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35em 0.75em;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    letter-spacing: 0.02em;
+}
+
+.badge-status::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.badge-status-compliant {
+    background-color: var(--epcras-compliant-bg);
+    color: var(--epcras-compliant);
+    border: 1px solid rgba(22, 163, 74, 0.2);
+}
+.badge-status-compliant::before {
+    background-color: var(--epcras-compliant);
+}
+
+.badge-status-non-compliant {
+    background-color: var(--epcras-critical-bg);
+    color: var(--epcras-critical);
+    border: 1px solid rgba(220, 38, 38, 0.2);
+}
+.badge-status-non-compliant::before {
+    background-color: var(--epcras-critical);
+}
+
+.badge-status-unknown {
+    background-color: var(--epcras-unknown-bg);
+    color: var(--epcras-unknown);
+    border: 1px solid rgba(100, 116, 139, 0.2);
+}
+.badge-status-unknown::before {
+    background-color: var(--epcras-unknown);
+}
+
+/* Severity Pill Badges */
+.badge-severity-critical {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+.badge-severity-high {
+    background-color: #ffedd5;
+    color: #9a3412;
+    border: 1px solid #fed7aa;
+}
+.badge-severity-medium {
+    background-color: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+}
+.badge-severity-low {
+    background-color: #e0f2fe;
+    color: #075985;
+    border: 1px solid #bae6fd;
+}
+
+/* Priority Score Gauges */
+.priority-score-badge {
+    font-family: var(--epcras-mono);
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+}
+
+/* ==============================================================================
+   Footer
+   ============================================================================== */
+.footer-epcras {
+    background-color: #0f172a;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    color: #94a3b8;
+    padding: 1.25rem 0;
+    font-size: 0.8125rem;
+}
+
+/* ==============================================================================
+   Dark Theme System & Overrides
+   ============================================================================== */
+.btn-nav-theme {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #cbd5e1;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.btn-nav-theme:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: scale(1.08);
+}
+
+[data-bs-theme="dark"] {
+    --epcras-primary: #0f172a;
+    --epcras-primary-hover: #1e293b;
+    --epcras-accent: #38bdf8;
+    --epcras-accent-hover: #0284c7;
+    --epcras-accent-gradient: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+
+    --epcras-bg: #0b0f19;
+    --epcras-surface: #151e2e;
+    --epcras-surface-elevated: #1e293b;
+    --epcras-card-border: #263346;
+    --epcras-card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+    --epcras-card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+
+    /* Text Colors */
+    --epcras-text-main: #f8fafc;
+    --epcras-text-muted: #94a3b8;
+    --epcras-text-subtle: #64748b;
+
+    /* Status background tints */
+    --epcras-critical-bg: rgba(220, 38, 38, 0.18);
+    --epcras-high-bg: rgba(234, 88, 12, 0.18);
+    --epcras-medium-bg: rgba(217, 119, 6, 0.18);
+    --epcras-low-bg: rgba(37, 99, 235, 0.18);
+    --epcras-compliant-bg: rgba(22, 163, 74, 0.18);
+    --epcras-unknown-bg: rgba(100, 116, 139, 0.18);
+
+    /* Bootstrap theme mappings */
+    --bs-body-bg: var(--epcras-bg);
+    --bs-body-color: var(--epcras-text-main);
+    --bs-card-bg: var(--epcras-surface);
+    --bs-card-border-color: var(--epcras-card-border);
+    --bs-border-color: var(--epcras-card-border);
+    --bs-tertiary-bg: var(--epcras-surface-elevated);
+}
+
+[data-bs-theme="dark"] body {
+    background-color: var(--epcras-bg);
+    color: var(--epcras-text-main);
+}
+
+/* Headings and text contrast */
+[data-bs-theme="dark"] h1,
+[data-bs-theme="dark"] h2,
+[data-bs-theme="dark"] h3,
+[data-bs-theme="dark"] h4,
+[data-bs-theme="dark"] h5,
+[data-bs-theme="dark"] h6 {
+    color: #f8fafc;
+}
+
+[data-bs-theme="dark"] .text-dark:not(.badge):not(.alert-warning):not(.alert-info):not(.badge-warning):not(.badge-info):not(.bg-warning):not(.bg-info) {
+    color: #f8fafc !important;
+}
+
+[data-bs-theme="dark"] .text-muted {
+    color: #94a3b8 !important;
+}
+
+/* Cards & Surfaces */
+[data-bs-theme="dark"] .card {
+    background-color: var(--epcras-surface);
+    border-color: var(--epcras-card-border);
+}
+
+[data-bs-theme="dark"] .card-header,
+[data-bs-theme="dark"] .card-footer {
+    background-color: var(--epcras-surface-elevated) !important;
+    border-color: var(--epcras-card-border) !important;
+    color: #f8fafc;
+}
+
+[data-bs-theme="dark"] .bg-white:not(.badge) {
+    background-color: var(--epcras-surface) !important;
+}
+
+[data-bs-theme="dark"] .bg-light {
+    background-color: #0f172a !important;
+    color: #cbd5e1 !important;
+}
+
+[data-bs-theme="dark"] .metric-card {
+    background: var(--epcras-surface);
+    border-color: var(--epcras-card-border);
+}
+
+[data-bs-theme="dark"] .metric-card .metric-value {
+    color: #f8fafc;
+}
+
+/* Form Controls */
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+    background-color: #0e1626;
+    border-color: #263346;
+    color: #f8fafc;
+}
+
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+    background-color: #0e1626;
+    border-color: #38bdf8;
+    color: #f8fafc;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+[data-bs-theme="dark"] .form-label {
+    color: #cbd5e1;
+}
+
+[data-bs-theme="dark"] .form-text {
+    color: #94a3b8;
+}
+
+[data-bs-theme="dark"] .input-group-text {
+    background-color: #1e293b;
+    border-color: #263346;
+    color: #94a3b8;
+}
+
+/* Modern Tables in Dark Mode */
+[data-bs-theme="dark"] .table {
+    color: var(--epcras-text-main);
+}
+
+[data-bs-theme="dark"] .table thead th {
+    background-color: #0d1522;
+    color: #94a3b8;
+    border-color: var(--epcras-card-border);
+}
+
+[data-bs-theme="dark"] .table tbody td {
+    border-color: #1a2536;
+    color: #cbd5e1;
+}
+
+[data-bs-theme="dark"] .table-hover tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+    color: #ffffff;
+}
+
+[data-bs-theme="dark"] .table-responsive {
+    border-color: var(--epcras-card-border);
+}
+
+/* List Groups & Modals */
+[data-bs-theme="dark"] .list-group-item {
+    background-color: var(--epcras-surface);
+    border-color: var(--epcras-card-border);
+    color: var(--epcras-text-main);
+}
+
+[data-bs-theme="dark"] .modal-content {
+    background-color: var(--epcras-surface);
+    border-color: var(--epcras-card-border);
+    color: var(--epcras-text-main);
+}
+
+[data-bs-theme="dark"] .dropdown-menu {
+    background-color: var(--epcras-surface-elevated);
+    border-color: var(--epcras-card-border);
+}
+
+[data-bs-theme="dark"] .dropdown-item {
+    color: #cbd5e1;
+}
+
+[data-bs-theme="dark"] .dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+/* Badges & Code Blocks */
+[data-bs-theme="dark"] .badge.bg-light.text-dark {
+    background-color: #1e293b !important;
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
+}
+
+[data-bs-theme="dark"] code {
+    background-color: #0d1522;
+    color: #38bdf8;
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+}
+
+[data-bs-theme="dark"] code.text-dark {
+    color: #38bdf8 !important;
+}
+
+[data-bs-theme="dark"] pre {
+    background-color: #0d1522;
+    color: #f8fafc;
+    border-color: #263346;
+}
+
+/* Border adjustments */
+[data-bs-theme="dark"] .border,
+[data-bs-theme="dark"] .border-top,
+[data-bs-theme="dark"] .border-bottom,
+[data-bs-theme="dark"] .border-start,
+[data-bs-theme="dark"] .border-end {
+    border-color: var(--epcras-card-border) !important;
+}
+
+/* Dark Footer */
+[data-bs-theme="dark"] .footer-epcras {
+    background-color: #070a12;
+    border-top-color: #1a2536;
+}
+
