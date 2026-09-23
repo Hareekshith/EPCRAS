@@ -119,30 +119,30 @@ EPCRAS follows a 4-tier layered architecture within a monolithic deployment:
 
 ```mermaid
 flowchart TD
-    subgraph ClientLayer ["Client Layer (Browser)"]
-        UI ["Bootstrap 5 / Vanilla JS / Chart.js"]
+    subgraph ClientLayer["Client Layer (Browser)"]
+        UI["Bootstrap 5 / Vanilla JS / Chart.js"]
     end
-    subgraph WebLayer ["Flask Web Application Layer"]
-        Blueprints ["Flask Blueprints / Routing"]
-        AuthMiddleware ["Flask-Login & RBAC Middleware"]
-        Forms ["Flask-WTF Forms & CSRF Validation"]
+    subgraph WebLayer["Flask Web Application Layer"]
+        Blueprints["Flask Blueprints / Routing"]
+        AuthMiddleware["Flask-Login and RBAC Middleware"]
+        Forms["Flask-WTF Forms and CSRF Validation"]
     end
-    subgraph ServiceLayer ["Business Logic & Service Layer"]
-        AuthSvc ["auth_service.py (FR1)"]
-        AssetSvc ["asset_service.py (FR2)"]
-        SoftSvc ["software_service.py (FR3)"]
-        VulnSvc ["vulnerability_service.py (FR4)"]
-        CompEngine ["compliance_engine.py (FR5)"]
-        PrioEngine ["priority_engine.py (FR11)"]
-        DashSvc ["dashboard_service.py (FR6)"]
-        ReportSvc ["report_service.py (FR7)"]
-        SearchSvc ["search_service.py (FR8)"]
-        NotifSvc ["notification_service.py (FR9)"]
-        AdminSvc ["admin_service.py & audit_service.py (FR10)"]
+    subgraph ServiceLayer["Business Logic and Service Layer"]
+        AuthSvc["auth_service.py (FR1)"]
+        AssetSvc["asset_service.py (FR2)"]
+        SoftSvc["software_service.py (FR3)"]
+        VulnSvc["vulnerability_service.py (FR4)"]
+        CompEngine["compliance_engine.py (FR5)"]
+        PrioEngine["priority_engine.py (FR11)"]
+        DashSvc["dashboard_service.py (FR6)"]
+        ReportSvc["report_service.py (FR7)"]
+        SearchSvc["search_service.py (FR8)"]
+        NotifSvc["notification_service.py (FR9)"]
+        AdminSvc["admin_service.py and audit_service.py (FR10)"]
     end
-    subgraph DataLayer ["Data Access & Storage Layer"]
-        ORM ["Flask-SQLAlchemy ORM"]
-        DB [("SQLite Database")]
+    subgraph DataLayer["Data Access and Storage Layer"]
+        ORM["Flask-SQLAlchemy ORM"]
+        DB[("SQLite Database")]
     end
 
     UI --> Blueprints
@@ -314,45 +314,45 @@ erDiagram
 
 ```mermaid
 flowchart TD
-    subgraph ExternalEntities ["External Entities"]
-        Users ["System Users (Admin, Analyst, Asset Mgr, Auditor)"]
-        CSVFiles ["CSV Data Imports (Assets / Software / CVEs)"]
+    subgraph ExternalEntities["External Entities"]
+        Users["System Users (Admin, Analyst, Asset Mgr, Auditor)"]
+        CSVFiles["CSV Data Imports (Assets / Software / CVEs)"]
     end
 
-    subgraph EPCRAS ["EPCRAS System Boundary"]
-        SystemProcess (("0. EPCRAS Main Application Process"))
+    subgraph EPCRAS["EPCRAS System Boundary"]
+        SystemProcess(("0. EPCRAS Main Application Process"))
     end
 
-    subgraph Reports ["External Output"]
-        PDFCSVExports ["PDF Audit Reports / CSV Downloads"]
+    subgraph Reports["External Output"]
+        PDFCSVExports["PDF Audit Reports / CSV Downloads"]
     end
 
-    Users -- "Login credentials, asset data, CVE entries, filter requests" --> SystemProcess
-    CSVFiles -- "Bulk Asset / Software / CVE CSV Files" --> SystemProcess
-    SystemProcess -- "Rendered UI views, charts, alert notifications" --> Users
-    SystemProcess -- "Generated PDF / CSV Reports" --> PDFCSVExports
+    Users -->|"Login credentials, asset data, CVE entries, filter requests"| SystemProcess
+    CSVFiles -->|"Bulk Asset / Software / CVE CSV Files"| SystemProcess
+    SystemProcess -->|"Rendered UI views, charts, alert notifications"| Users
+    SystemProcess -->|"Generated PDF / CSV Reports"| PDFCSVExports
 ```
 
 #### 8.2 DFD Level 1
 
 ```mermaid
 flowchart TD
-    subgraph External ["External Entities"]
+    subgraph External["External Entities"]
         User["User"]
         CSV["CSV File"]
         Export["PDF / CSV Output"]
     end
 
-    subgraph Processes ["System Processes"]
-        P1(("1.0 Authentication & Access Control"))
+    subgraph Processes["System Processes"]
+        P1(("1.0 Authentication and Access Control"))
         P2(("2.0 Inventory Management"))
         P3(("3.0 Vulnerability Cataloging"))
-        P4(("4.0 Compliance & Risk Engine"))
-        P5(("5.0 Reporting & Visualization"))
-        P6(("6.0 System Admin & Audit Logging"))
+        P4(("4.0 Compliance and Risk Engine"))
+        P5(("5.0 Reporting and Visualization"))
+        P6(("6.0 System Admin and Audit Logging"))
     end
 
-    subgraph DataStores ["Data Stores"]
+    subgraph DataStores["Data Stores"]
         D1[("D1: User Store")]
         D2[("D2: Asset Store")]
         D3[("D3: Software Store")]
@@ -361,31 +361,31 @@ flowchart TD
         D6[("D6: Notification Store")]
     end
 
-    User -- "Credentials" --> P1
-    P1 -- "Validate Session & Role" --> D1
+    User -->|"Credentials"| P1
+    P1 -->|"Validate Session and Role"| D1
     
-    User -- "Asset/Software Data" --> P2
-    CSV -- "Bulk Imports" --> P2
-    P2 -- "Store Assets & Software" --> D2
-    P2 -- "Store Asset Software Mappings" --> D3
+    User -->|"Asset/Software Data"| P2
+    CSV -->|"Bulk Imports"| P2
+    P2 -->|"Store Assets and Software"| D2
+    P2 -->|"Store Asset Software Mappings"| D3
 
-    User -- "CVE Info" --> P3
-    CSV -- "Bulk CVE Import" --> P3
-    P3 -- "Store CVEs & Affected Ranges" --> D4
+    User -->|"CVE Info"| P3
+    CSV -->|"Bulk CVE Import"| P3
+    P3 -->|"Store CVEs and Affected Ranges"| D4
 
-    P4 -- "Read Assets & Software" --> D2
-    P4 -- "Read Installed Versions" --> D3
-    P4 -- "Read Vulnerability Ranges" --> D4
-    P4 -- "Trigger Critical Alerts" --> D6
+    P4 -->|"Read Assets and Software"| D2
+    P4 -->|"Read Installed Versions"| D3
+    P4 -->|"Read Vulnerability Ranges"| D4
+    P4 -->|"Trigger Critical Alerts"| D6
 
-    P5 -- "Query Compliance & Risk Data" --> D2
-    P5 -- "Query CVE & Priority Data" --> D4
-    P5 -- "Export PDF / CSV" --> Export
+    P5 -->|"Query Compliance and Risk Data"| D2
+    P5 -->|"Query CVE and Priority Data"| D4
+    P5 -->|"Export PDF / CSV"| Export
 
-    P1 -- "Auth Actions" --> P6
-    P2 -- "Inventory Actions" --> P6
-    P3 -- "CVE Actions" --> P6
-    P6 -- "Write Security Log" --> D5
+    P1 -->|"Auth Actions"| P6
+    P2 -->|"Inventory Actions"| P6
+    P3 -->|"CVE Actions"| P6
+    P6 -->|"Write Security Log"| D5
 ```
 
 ---
@@ -396,24 +396,24 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph Actors
+    subgraph Actors["Actors"]
         Admin["Administrator"]
         Analyst["Security Analyst"]
         AssetMgr["Asset Manager"]
         Auditor["Auditor"]
     end
 
-    subgraph System ["EPCRAS System Boundary"]
+    subgraph System["EPCRAS System Boundary"]
         UC1["UC-1: Authenticate User (FR1)"]
         UC2["UC-2: Manage Asset Inventory (FR2)"]
         UC3["UC-3: Manage Software Inventory (FR3)"]
-        UC4["UC-4: Catalog CVEs & Vulnerabilities (FR4)"]
-        UC5["UC-5: Run Compliance & Risk Engine (FR5, FR11)"]
+        UC4["UC-4: Catalog CVEs and Vulnerabilities (FR4)"]
+        UC5["UC-5: Run Compliance and Risk Engine (FR5, FR11)"]
         UC6["UC-6: View Visual Dashboard (FR6)"]
         UC7["UC-7: Export Reports PDF/CSV (FR7)"]
-        UC8["UC-8: Search & Filter Inventory (FR8)"]
+        UC8["UC-8: Search and Filter Inventory (FR8)"]
         UC9["UC-9: View System Alerts (FR9)"]
-        UC10["UC-10: Manage Users & Inspect Audit Logs (FR10)"]
+        UC10["UC-10: Manage Users and Inspect Audit Logs (FR10)"]
     end
 
     Admin --> UC1
@@ -456,10 +456,10 @@ sequenceDiagram
 
     Analyst->>UI: Request Compliance Analysis Scan
     UI->>CE: run_compliance_scan()
-    CE->>DB: Fetch Active Assets & Software Mappings
+    CE->>DB: Fetch Active Assets and Software Mappings
     DB-->>CE: Return Asset/Software Records
-    CE->>DB: Fetch Active Vulnerabilities & Vulnerable Software Ranges
-    DB-->>CE: Return CVE & Version Range Records
+    CE->>DB: Fetch Active Vulnerabilities and Vulnerable Software Ranges
+    DB-->>CE: Return CVE and Version Range Records
     
     loop For each Asset Software Mapping
         CE->>CE: Compare installed_version vs affected_version range
@@ -472,7 +472,7 @@ sequenceDiagram
         end
     end
 
-    CE->>DB: Persist Compliance & Priority Results
+    CE->>DB: Persist Compliance and Priority Results
     
     opt Critical Vulnerability Detected on High/Critical Asset
         CE->>NS: trigger_alert(Critical Vulnerability Alert)
@@ -480,7 +480,7 @@ sequenceDiagram
     end
 
     CE-->>UI: Scan Complete Summary
-    UI-->>Analyst: Display Compliance & Priority Results
+    UI-->>Analyst: Display Compliance and Priority Results
 ```
 
 #### 9.3 Activity Diagram: Vulnerability-to-Patch Assessment Workflow
@@ -488,25 +488,25 @@ sequenceDiagram
 ```mermaid
 flowchart TD
     Start(["Start Patch Assessment"]) --> SelectVuln["Select CVE or Asset Software Record"]
-    SelectVuln --> InspectCVE["Inspect Vulnerability CVSS & Affected Software Version Ranges"]
+    SelectVuln --> InspectCVE["Inspect Vulnerability CVSS and Affected Software Version Ranges"]
     InspectCVE --> CheckInstalled["Check Installed Version across Asset Fleet"]
     
     CheckInstalled --> IsAffected{"Is Version Affected by CVE?"}
-    IsAffected -- "No" --> MarkCompliant["Mark Compliance Status = Compliant"]
+    IsAffected -->|"No"| MarkCompliant["Mark Compliance Status = Compliant"]
     MarkCompliant --> EndWorkflow(["End Assessment"])
 
-    IsAffected -- "Yes" --> CheckPatch{"Is Patch Available?"}
-    CheckPatch -- "No" --> MarkUnpatched["Mark Compliance Status = Unpatched Risk"]
+    IsAffected -->|"Yes"| CheckPatch{"Is Patch Available?"}
+    CheckPatch -->|"No"| MarkUnpatched["Mark Compliance Status = Unpatched Risk"]
     MarkUnpatched --> CalcScore["Compute Patch Priority Score (PPS)"]
 
-    CheckPatch -- "Yes" --> MarkNonCompliant["Mark Compliance Status = Non-Compliant"]
+    CheckPatch -->|"Yes"| MarkNonCompliant["Mark Compliance Status = Non-Compliant"]
     MarkNonCompliant --> CalcScore
 
     CalcScore --> CheckCritical{"Is Priority Score >= 75.0 or Critical Asset?"}
-    CheckCritical -- "Yes" --> TriggerNotification["Trigger Critical In-App Alert Notification"]
-    TriggerNotification --> RankRemediation["Add to Remediation Queue & PDF/CSV Report"]
+    CheckCritical -->|"Yes"| TriggerNotification["Trigger Critical In-App Alert Notification"]
+    TriggerNotification --> RankRemediation["Add to Remediation Queue and PDF/CSV Report"]
     
-    CheckCritical -- "No" --> RankRemediation
+    CheckCritical -->|"No"| RankRemediation
     RankRemediation --> LogAudit["Record Assessment Event in Audit Log"]
     LogAudit --> EndWorkflow
 ```
