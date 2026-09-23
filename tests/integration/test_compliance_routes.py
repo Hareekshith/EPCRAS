@@ -58,3 +58,22 @@ def test_asset_compliance_detail_route(client, analyst_user, app):
     resp = client.get(f'/compliance/assets/{asset.id}')
     assert resp.status_code == 200
     assert b'SRV-TEST-02' in resp.data
+
+    # Nonexistent asset
+    resp_none = client.get('/compliance/assets/999999', follow_redirects=True)
+    assert resp_none.status_code == 200
+    assert b"Asset not found" in resp_none.data
+
+def test_targeted_compliance_run_and_filtering_routes(client, admin_user, app):
+    asset = create_asset({'hostname': 'SRV-TARGET-99', 'ip_address': '10.10.10.99'})
+    login_as(client, admin_user.username, 'AdminSecret123!')
+
+    # Targeted run for single asset
+    resp = client.post('/compliance/run', data={'asset_id': str(asset.id)}, follow_redirects=True)
+    assert resp.status_code == 200
+    assert b'Compliance analysis completed' in resp.data
+
+    # Filter non-compliant route
+    resp_filter = client.get('/compliance/non-compliant?severity=CRITICAL&software=Log4j')
+    assert resp_filter.status_code == 200
+

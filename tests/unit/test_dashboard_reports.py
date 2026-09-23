@@ -102,3 +102,43 @@ def test_report_generation_pdf(app):
         pdf_bytes = generate_pdf_report(rtype)
         assert isinstance(pdf_bytes, bytes)
         assert pdf_bytes.startswith(b'%PDF')
+
+def test_dashboard_metrics_empty_database(app):
+    data = get_dashboard_metrics()
+    metrics = data['metrics']
+    assert metrics['total_assets'] == 0
+    assert metrics['compliant_assets'] == 0
+    assert metrics['non_compliant_assets'] == 0
+    assert metrics['unknown_assets'] == 0
+    assert metrics['overall_compliance_percentage'] == 0.0
+    assert metrics['critical_vulnerabilities'] == 0
+    assert metrics['high_risk_assets'] == 0
+    assert metrics['vulnerabilities_with_patches'] == 0
+
+def test_dashboard_metrics_with_unassigned_department(app):
+    # Asset without department
+    create_asset({'hostname': 'NO-DEPT-SRV', 'ip_address': '10.5.5.5', 'department_id': None})
+    data = get_dashboard_metrics()
+    dept_chart = data['charts']['department_compliance']
+    assert "Unassigned" in dept_chart
+    assert dept_chart["Unassigned"]["unknown"] == 1
+
+def test_get_report_data_invalid_type_raises_error(app):
+    with pytest.raises(ValueError, match="Unknown report type"):
+        get_report_data("INVALID_REPORT_TYPE")
+
+def test_all_report_data_structures(app):
+    dept = create_department("Ops")
+    asset = create_asset({'hostname': 'OPS-01', 'ip_address': '10.8.8.8', 'department_id': dept.id})
+    sw = get_or_create_software("Python", "PSF")
+    add_installed_software(asset.id, sw.id, "3.10.0")
+
+    for rtype in ReportType.all_types():
+        data = get_report_data(rtype)
+        assert 'title' in data
+        assert 'timestamp' in data
+        assert 'summary' in data
+        assert 'headers' in data
+        assert 'rows' in data
+        assert isinstance(data['rows'], list)
+

@@ -19,14 +19,7 @@ def parse_version(version_str: Optional[str]) -> Optional[Version]:
     if clean_str.lower().startswith('v') and len(clean_str) > 1 and clean_str[1].isdigit():
         clean_str = clean_str[1:]
 
-    try:
-        ver = packaging_parse(clean_str)
-        if isinstance(ver, Version):
-            return ver
-    except (InvalidVersion, TypeError, Exception):
-        pass
-
-    # Fallback for OpenSSL-style trailing letter patch levels (e.g. '1.1.1f' -> '1.1.1.6')
+    # OpenSSL-style trailing letter patch levels (e.g. '1.1.1a' -> '1.1.1.1', '1.1.1f' -> '1.1.1.6')
     letter_patch_match = re.match(r'^(\d+(?:\.\d+)*)([a-z])$', clean_str, re.IGNORECASE)
     if letter_patch_match:
         base, letter = letter_patch_match.groups()
@@ -37,6 +30,13 @@ def parse_version(version_str: Optional[str]) -> Optional[Version]:
                 return ver
         except Exception:
             pass
+
+    try:
+        ver = packaging_parse(clean_str)
+        if isinstance(ver, Version):
+            return ver
+    except (InvalidVersion, TypeError, Exception):
+        pass
 
     return None
 
@@ -150,12 +150,15 @@ def is_version_in_range(installed_version_str: str, affected_range_str: str) -> 
         else:
             return start_ver <= installed_ver < end_ver
 
-    # Split by comma or ' or '
+    # Check if expression uses explicit OR ('or' / '|') or is a comma-separated list of exact versions
+    is_or_expr = bool(re.search(r'\s+or\s+|\|', range_clean, re.IGNORECASE))
     clauses = [c.strip() for c in re.split(r'[,|]|(?:\s+or\s+)', range_clean) if c.strip()]
     if not clauses:
         return None
 
-    # All clauses separated by comma must match (AND condition)
+    has_relational_op = any(re.match(r'^(<=|>=|<|>|~=)', c) for c in clauses)
+    use_any = is_or_expr or not has_relational_op
+
     clause_results = []
     for clause in clauses:
         res = _parse_single_clause(clause, installed_ver)
@@ -163,7 +166,7 @@ def is_version_in_range(installed_version_str: str, affected_range_str: str) -> 
             return None  # Unparseable clause -> UNKNOWN
         clause_results.append(res)
 
-    return all(clause_results)
+    return any(clause_results) if use_any else all(clause_results)
 
 def is_version_vulnerable(installed_version_str: str, affected_versions_str: Optional[str], fixed_version_str: Optional[str] = None) -> Optional[bool]:
     """

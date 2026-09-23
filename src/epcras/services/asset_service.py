@@ -83,9 +83,11 @@ def update_asset(asset_id: int, data: dict) -> Asset:
         raise ValueError(f"Asset ID {asset_id} not found.")
 
     new_hostname = (data.get('hostname') or '').strip()
-    if new_hostname.lower() != asset.hostname.lower():
+    if new_hostname and new_hostname.lower() != asset.hostname.lower():
         if get_asset_by_hostname(new_hostname):
             raise ValueError(f"An asset with hostname '{new_hostname}' already exists.")
+        asset.hostname = new_hostname
+    elif new_hostname and new_hostname != asset.hostname:
         asset.hostname = new_hostname
 
     os_ver = (data.get('os_version') or '').strip()

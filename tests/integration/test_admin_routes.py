@@ -86,3 +86,27 @@ def test_admin_audit_log_viewer_filtering(client, admin_user):
     resp = client.get('/admin/audit-logs?action_category=LOGIN')
     assert resp.status_code == 200
     assert b'Audit Records' in resp.data
+
+def test_admin_user_form_validation_and_nonexistent(client, admin_user):
+    login_as(client, admin_user.username, 'AdminSecret123!')
+
+    # Form validation error on create: short password & invalid email
+    resp_create_err = client.post('/admin/users/new', data={
+        'username': 'invalid_u',
+        'email': 'not-an-email',
+        'password': 'short',
+        'role': Role.AUDITOR
+    }, follow_redirects=True)
+    assert resp_create_err.status_code == 200
+    assert b'Password must be at least 8 characters' in resp_create_err.data or b'Invalid email' in resp_create_err.data
+
+    # Edit non-existent user
+    resp_edit_none = client.get('/admin/users/999999/edit', follow_redirects=True)
+    assert resp_edit_none.status_code == 200
+    assert b'User account not found' in resp_edit_none.data
+
+    # Toggle non-existent user
+    resp_toggle_none = client.post('/admin/users/999999/toggle-status', follow_redirects=True)
+    assert resp_toggle_none.status_code == 200
+    assert b'does not exist' in resp_toggle_none.data
+

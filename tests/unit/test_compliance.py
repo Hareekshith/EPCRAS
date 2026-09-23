@@ -6,8 +6,10 @@ from epcras.models.vulnerability import Vulnerability, Severity
 from epcras.services.asset_service import create_asset
 from epcras.services.software_service import get_or_create_software, add_installed_software
 from epcras.services.vulnerability_service import create_vulnerability
+from epcras.models.compliance import ComplianceResult, ComplianceStatus
 from epcras.services.compliance_service import (
-    run_compliance_analysis, get_compliance_summary, get_non_compliant_findings
+    run_compliance_analysis, get_compliance_summary, get_non_compliant_findings,
+    get_asset_compliance_detail
 )
 
 def test_compliance_software_no_vulnerabilities_returns_unknown(app):
@@ -140,3 +142,78 @@ def test_compliance_summary_stats(app):
     assert summary['non_compliant_assets'] == 1
     assert summary['compliance_rate'] == 0.0
     assert summary['critical_findings'] == 1
+
+def test_compliance_summary_zero_assets(app):
+    summary = get_compliance_summary()
+    assert summary['total_assets'] == 0
+    assert summary['compliance_rate'] == 0.0
+    assert summary['total_findings'] == 0
+
+def test_targeted_asset_compliance_analysis(app):
+    a1 = create_asset({'hostname': 'TARGET-A1', 'ip_address': '10.0.0.1'})
+    a2 = create_asset({'hostname': 'TARGET-A2', 'ip_address': '10.0.0.2'})
+
+    sw = get_or_create_software("VulnApp", "V")
+    add_installed_software(a1.id, sw.id, "1.0.0")
+    add_installed_software(a2.id, sw.id, "1.0.0")
+
+    create_vulnerability({
+        'cve_id': 'CVE-2024-TARGET',
+        'software': 'VulnApp',
+        'vendor': 'V',
+        'cvss_score': 8.0,
+        'severity': 'HIGH',
+        'affected_versions': '1.0.0'
+    })
+
+    # Run analysis ONLY on a1
+    res1 = run_compliance_analysis(asset_id=a1.id)
+    assert res1['scanned_installations'] == 1
+    assert res1['non_compliant_findings'] == 1
+
+    findings_a1 = ComplianceResult.query.filter_by(asset_id=a1.id).all()
+    assert len(findings_a1) == 1
+
+    findings_a2 = ComplianceResult.query.filter_by(asset_id=a2.id).all()
+    assert len(findings_a2) == 0  # Untouched
+
+def test_asset_compliance_detail_service(app):
+    asset = create_asset({'hostname': 'DETAIL-HOST', 'ip_address': '10.0.0.3'})
+
+    # No software installed -> UNKNOWN
+    d_empty = get_asset_compliance_detail(asset.id)
+    assert d_empty['overall_status'] == 'UNKNOWN'
+
+    # Nonexistent asset
+    assert get_asset_compliance_detail(999999) is None
+
+    # Install compliant software
+    sw = get_or_create_software("CleanApp", "V")
+    add_installed_software(asset.id, sw.id, "2.0.0")
+    create_vulnerability({
+        'cve_id': 'CVE-2024-CLEAN',
+        'software': 'CleanApp',
+        'vendor': 'V',
+        'cvss_score': 5.0,
+        'severity': 'MEDIUM',
+        'affected_versions': '< 1.0.0',
+        'fixed_version': '1.0.0'
+    })
+    run_compliance_analysis(asset.id)
+
+    d_clean = get_asset_compliance_detail(asset.id)
+    assert d_clean['overall_status'] == 'COMPLIANT'
+    assert len(d_clean['installed_software']) == 1
+
+def test_compliance_result_repr_and_statuses(app):
+    comp = ComplianceResult(
+        asset_id=1,
+        installed_software_id=1,
+        software_name="ReprSoft",
+        installed_version="1.0.0",
+        status=ComplianceStatus.NON_COMPLIANT,
+        cve_id="CVE-2024-REPR"
+    )
+    assert "CVE-2024-REPR" in repr(comp)
+    assert len(ComplianceStatus.all_statuses()) == 3
+

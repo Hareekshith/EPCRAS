@@ -3,49 +3,59 @@
 {% block title %}Sign In - EPCRAS{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center align-items-center my-5">
-    <div class="col-md-5 col-lg-4">
-        <div class="card shadow-lg border-0 rounded-3">
-            <div class="card-header bg-dark text-white text-center py-4 rounded-top-3">
-                <i class="bi bi-shield-lock fs-1 text-info"></i>
-                <h4 class="mt-2 mb-0 fw-bold">EPCRAS System Sign In</h4>
-                <small class="text-muted">Enterprise Patch Compliance & Risk Assessment</small>
+<div class="row justify-content-center align-items-center my-4 my-md-5">
+    <div class="col-md-6 col-lg-5 col-xl-4">
+        <div class="card shadow-sm border rounded-4 overflow-hidden">
+            <div class="card-header bg-dark text-white text-center py-4 border-0" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;">
+                <div class="brand-icon mx-auto mb-2" style="width: 44px; height: 44px; font-size: 1.4rem;">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                <h4 class="mt-2 mb-1 fw-bold tracking-tight">EPCRAS System Sign In</h4>
+                <p class="text-white-50 small mb-0">Enterprise Patch Compliance & Risk Assessment</p>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body p-4 bg-white">
                 <form method="POST" action="{{ url_for('auth.login') }}" novalidate>
                     {{ form.csrf_token }}
 
                     <div class="mb-3">
-                        {{ form.username_or_email.label(class="form-label fw-semibold") }}
-                        {{ form.username_or_email(class="form-control" + (" is-invalid" if form.username_or_email.errors else "")) }}
+                        {{ form.username_or_email.label(class="form-label") }}
+                        {{ form.username_or_email(class="form-control" + (" is-invalid" if form.username_or_email.errors else ""), placeholder="Username or email address") }}
                         {% for error in form.username_or_email.errors %}
                             <div class="invalid-feedback">{{ error }}</div>
                         {% endfor %}
                     </div>
 
                     <div class="mb-3">
-                        {{ form.password.label(class="form-label fw-semibold") }}
-                        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else "")) }}
+                        <div class="d-flex justify-content-between align-items-center">
+                            {{ form.password.label(class="form-label mb-0") }}
+                        </div>
+                        {{ form.password(class="form-control mt-1" + (" is-invalid" if form.password.errors else ""), placeholder="Enter password") }}
                         {% for error in form.password.errors %}
                             <div class="invalid-feedback">{{ error }}</div>
                         {% endfor %}
                     </div>
 
-                    <div class="form-check mb-3">
+                    <div class="form-check mb-4">
                         {{ form.remember_me(class="form-check-input") }}
                         {{ form.remember_me.label(class="form-check-label text-muted fs-7") }}
                     </div>
 
                     <div class="d-grid">
-                        {{ form.submit(class="btn btn-info text-white fw-bold py-2") }}
+                        <button type="submit" class="btn btn-primary py-2.5 fw-semibold shadow-sm">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Console
+                        </button>
                     </div>
                 </form>
             </div>
-            <div class="card-footer bg-light text-center py-3">
-                <small class="text-muted">
-                    <i class="bi bi-lock-fill me-1"></i>
+            <div class="card-footer bg-light border-top py-3 px-4 text-center">
+                <small class="text-muted d-block mb-1">
+                    <i class="bi bi-shield-shaded me-1 text-primary"></i>
                     Public registration is disabled. Contact your System Administrator for access.
                 </small>
+                <div class="mt-2 pt-2 border-top border-secondary-subtle fs-7 text-secondary">
+                    <span class="fw-semibold">Demo Credentials:</span>
+                    <code>admin</code> &bull; <code>analyst</code> &bull; <code>support</code>
+                </div>
             </div>
         </div>
     </div>

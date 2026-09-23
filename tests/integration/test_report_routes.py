@@ -37,3 +37,18 @@ def test_report_export_pdf(client, admin_user):
         assert 'attachment;' in resp.headers['Content-Disposition']
         assert rtype.lower() in resp.headers['Content-Disposition']
         assert resp.data.startswith(b'%PDF')
+
+def test_report_export_invalid_type_and_format(client, admin_user):
+    login_as(client, admin_user.username, 'AdminSecret123!')
+
+    # Invalid report type
+    resp_invalid_type = client.get('/reports/export/NON_EXISTENT_REPORT/csv', follow_redirects=True)
+    assert resp_invalid_type.status_code == 200
+    assert b"Invalid report type requested" in resp_invalid_type.data
+
+    # Invalid format
+    resp_invalid_fmt = client.get('/reports/export/OVERALL_COMPLIANCE/xml', follow_redirects=True)
+    assert resp_invalid_fmt.status_code == 200
+    assert b"Invalid export format requested" in resp_invalid_fmt.data
+
+

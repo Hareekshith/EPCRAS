@@ -99,3 +99,54 @@ def test_patch_priority_report_generation(app):
     # PDF Generation test
     pdf_bytes = generate_pdf_report(ReportType.PATCH_PRIORITY)
     assert pdf_bytes.startswith(b'%PDF')
+
+def test_priority_score_nonexistent_vuln_raises_error(app):
+    with pytest.raises(ValueError, match="not found"):
+        calculate_vulnerability_priority(999999)
+
+def test_priority_score_zero_assets_in_system(app):
+    vuln = create_vulnerability({
+        'cve_id': 'CVE-NOASSET',
+        'software': 'IsolatedApp',
+        'vendor': 'V',
+        'cvss_score': 10.0,
+        'severity': 'CRITICAL',
+        'exploit_available': True,
+        'patch_available': True
+    })
+    # 0 assets exist in DB
+    p_data = calculate_vulnerability_priority(vuln.id)
+    # CVSS (35) + Crit (0) + Exploit (15) + Assets (0) + Age (5) + Patch (5) = 60
+    assert p_data['affected_assets_count'] == 0
+    assert p_data['score'] == 60
+    assert p_data['factor_points']['assets'] == 0.0
+    assert p_data['factor_points']['criticality'] == 0.0
+
+def test_priority_score_future_and_missing_published_dates(app):
+    now_date = datetime.now(timezone.utc).date()
+
+    # Future published date (days_old clamped to 0)
+    future_date = now_date + timedelta(days=30)
+    v_future = create_vulnerability({
+        'cve_id': 'CVE-FUTURE',
+        'software': 'FutureApp',
+        'vendor': 'V',
+        'cvss_score': 6.0,
+        'severity': 'MEDIUM',
+        'published_date': future_date
+    })
+    res_future = calculate_vulnerability_priority(v_future.id)
+    assert res_future['factor_points']['age'] == 0.0
+
+    # Missing published date (age_norm defaults to 0.5 -> 5.0 pts)
+    v_nodate = create_vulnerability({
+        'cve_id': 'CVE-NODATE',
+        'software': 'NoDateApp',
+        'vendor': 'V',
+        'cvss_score': 6.0,
+        'severity': 'MEDIUM',
+        'published_date': None
+    })
+    res_nodate = calculate_vulnerability_priority(v_nodate.id)
+    assert res_nodate['factor_points']['age'] == 5.0
+

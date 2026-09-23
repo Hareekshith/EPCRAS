@@ -19,7 +19,7 @@ def search_system(params: dict, page: int = 1, per_page: int = 15) -> dict:
     software_param = params.get('software', '').strip()
     cve_param = params.get('cve_id', '').strip()
     severity_param = params.get('severity', '').strip().upper()
-    compliance_param = params.get('compliance_status', '').strip()
+    compliance_param = params.get('compliance_status', '').strip().replace('-', '_')
     criticality_param = params.get('criticality', '').strip().upper()
 
     results = []

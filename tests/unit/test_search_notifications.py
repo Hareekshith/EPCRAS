@@ -1,4 +1,5 @@
 import pytest
+from epcras.models.user import User, Role
 from epcras.models.asset import Asset, Criticality
 from epcras.models.compliance import ComplianceResult, ComplianceStatus
 from epcras.models.notification import Notification
@@ -125,3 +126,62 @@ def test_non_compliant_asset_triggers_notification(app):
     run_compliance_analysis()
     notifs = get_user_notifications(is_read=False)
     assert any('VULN-ASSET' in n.title for n in notifs)
+
+def test_notification_user_isolation(app, admin_user, analyst_user):
+    # Private notification for admin
+    n_admin = create_notification("KEY_ADMIN", "Admin Alert", "Only for admin", user_id=admin_user.id)
+    # Broadcast notification
+    n_broadcast = create_notification("KEY_ALL", "System Alert", "For all users", user_id=None)
+
+    # Admin sees both
+    admin_notifs = get_user_notifications(user_id=admin_user.id)
+    admin_ids = [n.id for n in admin_notifs]
+    assert n_admin.id in admin_ids
+    assert n_broadcast.id in admin_ids
+
+    # Analyst sees broadcast but NOT admin's private notification
+    analyst_notifs = get_user_notifications(user_id=analyst_user.id)
+    analyst_ids = [n.id for n in analyst_notifs]
+    assert n_broadcast.id in analyst_ids
+    assert n_admin.id not in analyst_ids
+
+    # Analyst cannot mark admin's private notification as read
+    assert mark_as_read(n_admin.id, user_id=analyst_user.id) is False
+    assert mark_as_read(999999, user_id=analyst_user.id) is False
+
+    # Admin CAN mark their own notification as read
+    assert mark_as_read(n_admin.id, user_id=admin_user.id) is True
+
+def test_search_system_pagination_and_vuln_branch(app):
+    create_vulnerability({
+        'cve_id': 'CVE-2024-SEARCH-1',
+        'software': 'SearchSoft',
+        'vendor': 'VendorS',
+        'cvss_score': 9.5,
+        'severity': 'CRITICAL'
+    })
+    create_vulnerability({
+        'cve_id': 'CVE-2024-SEARCH-2',
+        'software': 'SearchSoft',
+        'vendor': 'VendorS',
+        'cvss_score': 7.0,
+        'severity': 'HIGH'
+    })
+
+    # Search purely for vulnerabilities (no asset criteria)
+    res = search_system({'cve_id': 'SEARCH', 'software': 'SearchSoft'}, page=1, per_page=1)
+    assert res['total'] == 2
+    assert len(res['results_list']) == 1
+    assert res['pages'] == 2
+    assert res['page'] == 1
+    assert res['results_list'][0]['type'] == 'VULNERABILITY'
+
+    # Out of range page
+    res_empty = search_system({'cve_id': 'SEARCH'}, page=10, per_page=10)
+    assert len(res_empty['results_list']) == 0
+
+def test_notification_repr(app):
+    n = Notification(condition_key='REPR_KEY', title='Repr', message='Msg', severity='HIGH', is_read=False)
+    assert 'REPR_KEY' in repr(n)
+    assert 'HIGH' in repr(n)
+

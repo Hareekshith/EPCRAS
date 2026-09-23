@@ -63,3 +63,17 @@ def support_user(app):
     db.session.add(user)
     db.session.commit()
     return user
+
+@pytest.fixture
+def auditor_user(app):
+    user = User(
+        username='auditor_test',
+        email='auditor@test.com',
+        role=Role.AUDITOR,
+        is_active=True
+    )
+    user.set_password('AuditorSecret123!')
+    db.session.add(user)
+    db.session.commit()
+    return user
+

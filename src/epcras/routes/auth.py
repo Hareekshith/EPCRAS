@@ -27,7 +27,7 @@ def login():
             session.permanent = True
             flash(f'Welcome back, {user.username} ({user.role})!', 'success')
             next_page = request.args.get('next')
-            if next_page and next_page.startswith('/'):
+            if next_page and next_page.startswith('/') and not next_page.startswith('//') and not next_page.startswith('/\\'):
                 return redirect(next_page)
             return redirect(url_for('main.dashboard'))
         else:

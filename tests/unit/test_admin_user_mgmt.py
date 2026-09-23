@@ -2,7 +2,7 @@ import pytest
 from epcras.models.user import User, Role
 from epcras.models.audit import AuditLog
 from epcras.services.user_service import (
-    create_user, update_user, toggle_user_active_status, get_all_users, get_user_by_id
+    create_user, update_user, toggle_user_active_status, get_all_users, get_user_by_id, get_user_by_username
 )
 from epcras.services.audit_service import log_audit_event, get_audit_logs
 
@@ -95,4 +95,82 @@ def test_get_audit_logs_query(app):
     res2 = get_audit_logs(search='3094')
     assert res2['total'] >= 1
     assert any('CVE-2024-3094' in l.target_entity for l in res2['logs_list'])
+
+def test_create_user_validation_failures(app):
+    # Empty username
+    with pytest.raises(ValueError, match="Username is required"):
+        create_user({'username': '', 'email': 'valid@test.com', 'password': 'Password123!'})
+
+    # Empty email
+    with pytest.raises(ValueError, match="Email is required"):
+        create_user({'username': 'validuser', 'email': '', 'password': 'Password123!'})
+
+    # Password too short (<8)
+    with pytest.raises(ValueError, match="Password must be at least 8 characters"):
+        create_user({'username': 'validuser', 'email': 'valid@test.com', 'password': 'short'})
+
+    # Invalid role
+    with pytest.raises(ValueError, match="Invalid role"):
+        create_user({'username': 'validuser', 'email': 'valid@test.com', 'password': 'Password123!', 'role': 'HACKER'})
+
+def test_get_user_by_username_and_id(app):
+    user = create_user({'username': 'FindMe', 'email': 'findme@test.com', 'password': 'Password123!'})
+    assert get_user_by_username('findme').id == user.id
+    assert get_user_by_username('FINDME').id == user.id
+    assert get_user_by_username('') is None
+    assert get_user_by_username(None) is None
+
+    assert get_user_by_id(user.id).username == 'FindMe'
+    assert get_user_by_id(999999) is None
+
+def test_update_user_validation_and_password(app):
+    user = create_user({'username': 'pass_update', 'email': 'pass@test.com', 'password': 'OldPassword123!'})
+
+    # Non-existent user
+    with pytest.raises(ValueError, match="does not exist"):
+        update_user(999999, {'email': 'some@test.com'})
+
+    # Empty email
+    with pytest.raises(ValueError, match="Email is required"):
+        update_user(user.id, {'email': ''})
+
+    # Invalid role
+    with pytest.raises(ValueError, match="Invalid role"):
+        update_user(user.id, {'email': 'pass@test.com', 'role': 'SUPERUSER'})
+
+    # Retaining own email succeeds
+    updated = update_user(user.id, {'email': 'pass@test.com', 'role': Role.SECURITY_ANALYST})
+    assert updated.role == Role.SECURITY_ANALYST
+
+    # Duplicate email with another user
+    other = create_user({'username': 'other_u', 'email': 'other@test.com', 'password': 'Password123!'})
+    with pytest.raises(ValueError, match="already used"):
+        update_user(user.id, {'email': 'other@test.com'})
+
+    # Password update with >= 8 characters
+    update_user(user.id, {'email': 'pass@test.com', 'password': 'NewBrandPassword123!'})
+    assert user.check_password('NewBrandPassword123!') is True
+    assert user.check_password('OldPassword123!') is False
+
+def test_toggle_nonexistent_user(app):
+    with pytest.raises(ValueError, match="does not exist"):
+        toggle_user_active_status(999999)
+
+def test_get_all_users_filtering(app):
+    create_user({'username': 'alice_it', 'email': 'alice@company.com', 'password': 'Password123!', 'role': Role.IT_SUPPORT, 'is_active': True})
+    create_user({'username': 'bob_sec', 'email': 'bob@company.com', 'password': 'Password123!', 'role': Role.SECURITY_ANALYST, 'is_active': False})
+    create_user({'username': 'charlie_audit', 'email': 'charlie@other.com', 'password': 'Password123!', 'role': Role.AUDITOR, 'is_active': True})
+
+    # Search filter
+    assert len(get_all_users(search='alice')) == 1
+    assert len(get_all_users(search='company.com')) == 2
+
+    # Role filter
+    assert len(get_all_users(role=Role.AUDITOR)) == 1
+    assert len(get_all_users(role='IT_SUPPORT')) == 1
+
+    # Active filter
+    assert len(get_all_users(is_active=False)) == 1
+    assert get_all_users(is_active=False)[0].username == 'bob_sec'
+
 

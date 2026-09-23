@@ -55,6 +55,8 @@ def mark_as_read(notification_id: int, user_id: int = None) -> bool:
     notif = db.session.get(Notification, notification_id)
     if not notif:
         return False
+    if user_id is not None and notif.user_id is not None and notif.user_id != user_id:
+        return False
 
     notif.is_read = True
     db.session.commit()

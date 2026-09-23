@@ -52,16 +52,78 @@ def test_range_specifiers():
     assert is_version_in_range("5.6.0", "5.6.0 <= 5.6.1") is True
     assert is_version_in_range("5.6.2", "5.6.0 <= 5.6.1") is False
 
-def test_is_version_vulnerable():
-    # Vulnerable because in affected range and below fixed version
-    assert is_version_vulnerable("2.14.0", "2.0 <= 2.14.1", "2.17.1") is True
+def test_openssl_letter_versions():
+    # Trailing letter patch levels (e.g. OpenSSL 1.1.1f -> 1.1.1.6)
+    assert compare_versions("1.1.1a", "1.1.1b") == -1
+    assert compare_versions("1.1.1f", "1.1.1l") == -1
+    assert compare_versions("1.1.1n", "1.1.1f") == 1
+    assert compare_versions("1.1.1", "1.1.1a") == -1
+    assert compare_versions("1.1.1f", "1.1.1f") == 0
 
-    # Not vulnerable because installed version >= fixed version
-    assert is_version_vulnerable("2.17.1", "2.0 <= 2.14.1", "2.17.1") is False
-    assert is_version_vulnerable("2.18.0", "2.0 <= 2.14.1", "2.17.1") is False
+    # Range comparison with letter versions
+    assert is_version_in_range("1.1.1f", "< 1.1.1l") is True
+    assert is_version_in_range("1.1.1l", "< 1.1.1l") is False
+    assert is_version_in_range("1.1.1m", "< 1.1.1l") is False
 
-    # UNKNOWN because installed version is invalid
-    assert is_version_vulnerable("unparseable_v1", "2.0 <= 2.14.1", "2.17.1") is None
+def test_discrete_version_list_matching():
+    # Comma-separated discrete versions should match if ANY match
+    assert is_version_in_range("5.6.0", "5.6.0, 5.6.1") is True
+    assert is_version_in_range("5.6.1", "5.6.0, 5.6.1") is True
+    assert is_version_in_range("5.6.2", "5.6.0, 5.6.1") is False
 
-    # UNKNOWN because affected range is missing and no fixed version
-    assert is_version_vulnerable("1.0.0", None, None) is None
+    # Three discrete versions
+    assert is_version_in_range("2.0.1", "2.0.0, 2.0.1, 2.0.2") is True
+    assert is_version_in_range("2.0.3", "2.0.0, 2.0.1, 2.0.2") is False
+
+def test_or_and_pipe_clauses():
+    # 'or' keyword
+    assert is_version_in_range("1.1.0", "< 1.2 or > 2.0") is True
+    assert is_version_in_range("2.1.0", "< 1.2 or > 2.0") is True
+    assert is_version_in_range("1.5.0", "< 1.2 or > 2.0") is False
+
+    # Pipe '|' notation
+    assert is_version_in_range("1.0.0", "1.0.0 | 2.0.0") is True
+    assert is_version_in_range("2.0.0", "1.0.0 | 2.0.0") is True
+    assert is_version_in_range("1.5.0", "1.0.0 | 2.0.0") is False
+
+def test_additional_operators():
+    # != operator
+    assert is_version_in_range("1.0.0", "!= 1.0.0") is False
+    assert is_version_in_range("1.0.1", "!= 1.0.0") is True
+
+    # ~= compatible release
+    assert is_version_in_range("1.2.3", "~= 1.2.0") is True
+    assert is_version_in_range("1.3.0", "~= 1.2.0") is True
+    assert is_version_in_range("2.0.0", "~= 1.2.0") is False
+
+    # == and = operators
+    assert is_version_in_range("1.0.0", "== 1.0.0") is True
+    assert is_version_in_range("1.0.0", "= 1.0.0") is True
+    assert is_version_in_range("1.0.1", "== 1.0.0") is False
+
+def test_whitespace_and_formatting():
+    assert compare_versions("  1.2.3  ", "1.2.3") == 0
+    assert compare_versions("V1.2.3", "v1.2.3") == 0
+    assert is_version_in_range(" 2.10.0 ", " >= 2.0 , <= 2.14.1 ") is True
+    assert parse_version("   ") is None
+    assert parse_version(12345) is None
+    assert parse_version([]) is None
+
+def test_is_version_vulnerable_priority_and_edges():
+    # Fixed version present without affected_versions
+    assert is_version_vulnerable("1.0.0", None, "2.0.0") is True
+    assert is_version_vulnerable("2.0.0", None, "2.0.0") is False
+    assert is_version_vulnerable("2.0.1", None, "2.0.0") is False
+
+    # Affected versions without fixed version
+    assert is_version_vulnerable("1.5.0", "< 2.0.0", None) is True
+    assert is_version_vulnerable("2.5.0", "< 2.0.0", None) is False
+
+    # Invalid fixed version fallback
+    assert is_version_vulnerable("1.0.0", "< 2.0.0", "invalid_fixed") is True
+    assert is_version_vulnerable("3.0.0", "< 2.0.0", "invalid_fixed") is False
+
+    # Both unparseable
+    assert is_version_vulnerable("invalid_installed", "< 2.0.0", "2.0.0") is None
+    assert is_version_vulnerable("1.0.0", "invalid_range_!!!", None) is None
+

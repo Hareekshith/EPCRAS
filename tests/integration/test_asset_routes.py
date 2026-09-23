@@ -81,3 +81,53 @@ def test_asset_routes_security_analyst_read_only(client, analyst_user, admin_use
 
     res_import_attempt = client.get('/software/import')
     assert res_import_attempt.status_code == 403
+
+def test_asset_software_link_and_delete_routes(client, admin_user):
+    from epcras.services.software_service import get_or_create_software
+    from epcras.models.software import InstalledSoftware
+
+    client.post('/auth/login', data={'username_or_email': 'admin_test', 'password': 'AdminSecret123!'})
+
+    asset = create_asset({'hostname': 'SW-LINK-PC', 'ip_address': '10.0.0.8', 'operating_system': 'Linux'})
+    sw = get_or_create_software("TestApp", "TestVendor")
+
+    # Link software
+    resp_link = client.post(f'/assets/{asset.id}/software/add', data={
+        'software_id': sw.id,
+        'version': '3.2.1'
+    }, follow_redirects=True)
+    assert resp_link.status_code == 200
+    assert b"TestApp" in resp_link.data
+    assert b"3.2.1" in resp_link.data
+
+    inst = InstalledSoftware.query.filter_by(asset_id=asset.id, software_id=sw.id).first()
+    assert inst is not None
+
+    # Delete software link
+    resp_del_sw = client.post(f'/assets/{asset.id}/software/{inst.id}/delete', follow_redirects=True)
+    assert resp_del_sw.status_code == 200
+    assert b"Software association removed from asset" in resp_del_sw.data
+
+def test_asset_routes_nonexistent_ids(client, admin_user):
+    client.post('/auth/login', data={'username_or_email': 'admin_test', 'password': 'AdminSecret123!'})
+
+    # Nonexistent detail
+    resp_detail = client.get('/assets/999999', follow_redirects=True)
+    assert resp_detail.status_code == 200
+    assert b"Asset not found" in resp_detail.data
+
+    # Nonexistent edit
+    resp_edit = client.get('/assets/999999/edit', follow_redirects=True)
+    assert resp_edit.status_code == 200
+    assert b"Asset not found" in resp_edit.data
+
+def test_asset_department_creation_route(client, admin_user):
+    client.post('/auth/login', data={'username_or_email': 'admin_test', 'password': 'AdminSecret123!'})
+
+    resp = client.post('/assets/departments', data={
+        'name': 'Human Resources',
+        'description': 'HR Department'
+    }, follow_redirects=True)
+    assert resp.status_code == 200
+    assert b"Human Resources" in resp.data
+

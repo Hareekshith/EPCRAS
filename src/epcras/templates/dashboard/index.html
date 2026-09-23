@@ -192,30 +192,46 @@
     document.addEventListener("DOMContentLoaded", function() {
         const chartData = JSON.parse('{{ charts_json|safe }}');
 
+        function getThemeColors() {
+            const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+            return {
+                text: isDark ? '#94a3b8' : '#475569',
+                grid: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'
+            };
+        }
+
+        const colors = getThemeColors();
+        Chart.defaults.color = colors.text;
+        Chart.defaults.borderColor = colors.grid;
+
         // 1. Compliance Distribution (Doughnut Chart)
         const compData = chartData.compliance_distribution;
-        new Chart(document.getElementById('complianceChart'), {
+        const compChart = new Chart(document.getElementById('complianceChart'), {
             type: 'doughnut',
             data: {
                 labels: Object.keys(compData),
                 datasets: [{
                     data: Object.values(compData),
                     backgroundColor: ['#10b981', '#ef4444', '#64748b'],
-                    borderWidth: 2
+                    borderWidth: 2,
+                    borderColor: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? '#151e2e' : '#ffffff'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: colors.text }
+                    }
                 }
             }
         });
 
         // 2. Vulnerability Severity Exposure (Bar Chart)
         const sevData = chartData.severity_distribution;
-        new Chart(document.getElementById('severityChart'), {
+        const sevChart = new Chart(document.getElementById('severityChart'), {
             type: 'bar',
             data: {
                 labels: Object.keys(sevData),
@@ -233,28 +249,40 @@
                     legend: { display: false }
                 },
                 scales: {
-                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                    x: {
+                        ticks: { color: colors.text },
+                        grid: { color: colors.grid }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, color: colors.text },
+                        grid: { color: colors.grid }
+                    }
                 }
             }
         });
 
         // 3. Asset Criticality (Doughnut Chart)
         const critData = chartData.asset_criticality;
-        new Chart(document.getElementById('criticalityChart'), {
+        const critChart = new Chart(document.getElementById('criticalityChart'), {
             type: 'doughnut',
             data: {
                 labels: Object.keys(critData),
                 datasets: [{
                     data: Object.values(critData),
                     backgroundColor: ['#dc2626', '#f59e0b', '#0284c7', '#64748b'],
-                    borderWidth: 2
+                    borderWidth: 2,
+                    borderColor: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? '#151e2e' : '#ffffff'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: colors.text }
+                    }
                 }
             }
         });
@@ -266,7 +294,7 @@
         const nonCompDept = deptLabels.map(d => deptData[d].non_compliant);
         const unkDept = deptLabels.map(d => deptData[d].unknown);
 
-        new Chart(document.getElementById('departmentChart'), {
+        const deptChart = new Chart(document.getElementById('departmentChart'), {
             type: 'bar',
             data: {
                 labels: deptLabels,
@@ -280,13 +308,60 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: colors.text }
+                    }
                 },
                 scales: {
-                    x: { stacked: false },
-                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                    x: {
+                        stacked: false,
+                        ticks: { color: colors.text },
+                        grid: { color: colors.grid }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, color: colors.text },
+                        grid: { color: colors.grid }
+                    }
                 }
             }
+        });
+
+        // Live theme update listener
+        window.addEventListener('epcras-theme-changed', function(e) {
+            const isDark = e.detail.theme === 'dark';
+            const newColors = getThemeColors();
+            Chart.defaults.color = newColors.text;
+            Chart.defaults.borderColor = newColors.grid;
+
+            const sliceBorder = isDark ? '#151e2e' : '#ffffff';
+            if (compChart.data.datasets[0]) compChart.data.datasets[0].borderColor = sliceBorder;
+            if (critChart.data.datasets[0]) critChart.data.datasets[0].borderColor = sliceBorder;
+
+            [compChart, critChart].forEach(c => {
+                if (c.options.plugins && c.options.plugins.legend && c.options.plugins.legend.labels) {
+                    c.options.plugins.legend.labels.color = newColors.text;
+                }
+                c.update();
+            });
+
+            [sevChart, deptChart].forEach(c => {
+                if (c.options.plugins && c.options.plugins.legend && c.options.plugins.legend.labels) {
+                    c.options.plugins.legend.labels.color = newColors.text;
+                }
+                if (c.options.scales) {
+                    if (c.options.scales.x) {
+                        c.options.scales.x.ticks.color = newColors.text;
+                        c.options.scales.x.grid.color = newColors.grid;
+                    }
+                    if (c.options.scales.y) {
+                        c.options.scales.y.ticks.color = newColors.text;
+                        c.options.scales.y.grid.color = newColors.grid;
+                    }
+                }
+                c.update();
+            });
         });
     });
 </script>

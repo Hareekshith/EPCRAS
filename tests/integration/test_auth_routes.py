@@ -77,3 +77,58 @@ def test_role_restrictions_analyst_only(client, analyst_user, support_user):
     resp_analyst = client.get('/analyst-only')
     assert resp_analyst.status_code == 200
     assert b"Analyst Access Granted" in resp_analyst.data
+
+def test_login_open_redirect_prevention(client, admin_user):
+    # Malicious protocol-relative redirect //evil.com
+    resp = client.post('/auth/login?next=//evil.com', data={
+        'username_or_email': 'admin_test',
+        'password': 'AdminSecret123!'
+    }, follow_redirects=False)
+    assert resp.status_code == 302
+    assert resp.headers['Location'] == '/dashboard' or resp.headers['Location'].endswith('/dashboard')
+    assert 'evil.com' not in resp.headers['Location']
+    client.get('/auth/logout')
+
+    # Malicious backslash redirect /\\evil.com
+    resp2 = client.post('/auth/login?next=/\\evil.com', data={
+        'username_or_email': 'admin_test',
+        'password': 'AdminSecret123!'
+    }, follow_redirects=False)
+    assert resp2.status_code == 302
+    assert 'evil.com' not in resp2.headers['Location']
+    client.get('/auth/logout')
+
+    # Valid internal relative redirect
+    resp3 = client.post('/auth/login?next=/compliance/priority', data={
+        'username_or_email': 'admin_test',
+        'password': 'AdminSecret123!'
+    }, follow_redirects=False)
+    assert resp3.status_code == 302
+    assert resp3.headers['Location'] == '/compliance/priority' or resp3.headers['Location'].endswith('/compliance/priority')
+    client.get('/auth/logout')
+
+def test_inactive_user_web_login(client, admin_user):
+    from epcras.extensions import db
+    admin_user.is_active = False
+    db.session.commit()
+
+    resp = client.post('/auth/login', data={
+        'username_or_email': 'admin_test',
+        'password': 'AdminSecret123!'
+    }, follow_redirects=True)
+    assert b"Account is inactive" in resp.data
+
+def test_error_handlers(client, admin_user):
+    # 404 handler
+    resp_404 = client.get('/this-path-definitely-does-not-exist-404')
+    assert resp_404.status_code == 404
+    assert b"Page Not Found" in resp_404.data
+
+    # Log in to test authenticated pages
+    client.post('/auth/login', data={'username_or_email': 'admin_test', 'password': 'AdminSecret123!'})
+
+    # Root redirect to dashboard when authenticated
+    resp_root = client.get('/')
+    assert resp_root.status_code == 302
+    assert '/dashboard' in resp_root.headers['Location']
+
