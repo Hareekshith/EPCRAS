@@ -131,3 +131,54 @@ def test_asset_department_creation_route(client, admin_user):
     assert resp.status_code == 200
     assert b"Human Resources" in resp.data
 
+
+def test_asset_software_update_route(client, admin_user):
+    from epcras.services.software_service import get_or_create_software, add_installed_software
+    from epcras.models.software import InstalledSoftware
+
+    client.post('/auth/login', data={'username_or_email': 'admin_test', 'password': 'AdminSecret123!'})
+
+    asset = create_asset({'hostname': 'SW-UPDATE-PC', 'ip_address': '10.0.0.12', 'operating_system': 'Linux'})
+    sw = get_or_create_software("PostgreSQL", "PostgreSQL Global Dev")
+    inst = add_installed_software(asset.id, sw.id, "15.1")
+
+    # Update version via route
+    resp = client.post(f'/assets/{asset.id}/software/{inst.id}/update', data={
+        'version': '15.4'
+    }, follow_redirects=True)
+    assert resp.status_code == 200
+    assert b"to version 15.4" in resp.data
+
+    inst_refreshed = db_get_inst(inst.id)
+    assert inst_refreshed.version == "15.4"
+
+
+def test_fleet_wide_upgrade_route(client, admin_user):
+    from epcras.services.software_service import get_or_create_software, add_installed_software
+    from epcras.models.software import InstalledSoftware
+
+    client.post('/auth/login', data={'username_or_email': 'admin_test', 'password': 'AdminSecret123!'})
+
+    a1 = create_asset({'hostname': 'UPGRADE-PC-01', 'ip_address': '10.0.0.14', 'operating_system': 'Linux'})
+    a2 = create_asset({'hostname': 'UPGRADE-PC-02', 'ip_address': '10.0.0.15', 'operating_system': 'Linux'})
+    sw = get_or_create_software("Python", "Python Software Foundation")
+    inst1 = add_installed_software(a1.id, sw.id, "3.10.0")
+    inst2 = add_installed_software(a2.id, sw.id, "3.10.0")
+
+    resp = client.post('/software/bulk-upgrade', data={
+        'software_id': str(sw.id),
+        'target_version': '3.12.0'
+    }, follow_redirects=True)
+    assert resp.status_code == 200
+    assert b"Fleet upgrade complete" in resp.data
+
+    assert db_get_inst(inst1.id).version == "3.12.0"
+    assert db_get_inst(inst2.id).version == "3.12.0"
+
+
+def db_get_inst(inst_id):
+    from epcras.extensions import db
+    from epcras.models.software import InstalledSoftware
+    return db.session.get(InstalledSoftware, inst_id)
+
+

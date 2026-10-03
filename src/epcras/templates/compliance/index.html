@@ -114,6 +114,9 @@
                         <th>Severity</th>
                         <th>Fixed Version</th>
                         <th class="text-center">Patch Status</th>
+                        {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT', 'SECURITY_ANALYST') %}
+                        <th class="text-end pe-3">Action</th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -125,7 +128,9 @@
                                     {{ finding.asset.hostname if finding.asset else 'Asset #' + finding.asset_id|string }}
                                 </a>
                             </td>
-                            <td>{{ finding.software_name }}</td>
+                            <td>
+                                <span class="fw-semibold text-dark">{{ finding.software_name }}</span>
+                            </td>
                             <td><code class="text-dark">{{ finding.installed_version }}</code></td>
                             <td>
                                 {% if finding.cve_id %}
@@ -172,11 +177,27 @@
                                     <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Unavailable</span>
                                 {% endif %}
                             </td>
+                            {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT', 'SECURITY_ANALYST') %}
+                            <td class="text-end pe-3">
+                                <div class="table-action-group">
+                                    {% if finding.fixed_version %}
+                                    <button type="submit" form="quickPatchFormIndex{{ finding.id }}" class="btn btn-success btn-table-action shadow-sm" title="Mark as Updated to {{ finding.fixed_version }}">
+                                        <i class="bi bi-check2-circle"></i>
+                                        <span>Mark Updated</span>
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-outline-primary btn-table-action" data-bs-toggle="modal" data-bs-target="#updateModalIndex{{ finding.id }}" title="Specify custom updated version">
+                                        <i class="bi bi-pencil-square"></i>
+                                        <span>Update...</span>
+                                    </button>
+                                </div>
+                            </td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">
+                            <td colspan="9" class="text-center py-4 text-muted">
                                 <i class="bi bi-shield-check fs-2 d-block text-success mb-2"></i>
                                 No non-compliant vulnerability findings detected. Run analysis to refresh.
                             </td>
@@ -187,4 +208,66 @@
         </div>
     </div>
 </div>
+
+<!-- Hidden Quick-Patch Forms & Modals for Index Findings -->
+{% if recent_findings %}
+    {% for finding in recent_findings %}
+        {% if finding.fixed_version %}
+        <form id="quickPatchFormIndex{{ finding.id }}" action="{{ url_for('compliance.update_finding', finding_id=finding.id) }}" method="POST" class="d-none">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="target_version" value="{{ finding.fixed_version }}"/>
+        </form>
+        {% endif %}
+
+        <div class="modal fade" id="updateModalIndex{{ finding.id }}" tabindex="-1" aria-labelledby="updateModalIndexLabel{{ finding.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content shadow">
+                    <form action="{{ url_for('compliance.update_finding', finding_id=finding.id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="modal-header bg-dark text-white">
+                            <h5 class="modal-title" id="updateModalIndexLabel{{ finding.id }}">
+                                <i class="bi bi-patch-check-fill me-2 text-info"></i>Mark Software as Updated
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div class="alert alert-light border mb-3">
+                                <div class="row g-2 small">
+                                    <div class="col-sm-4 text-muted">Asset:</div>
+                                    <div class="col-sm-8 fw-bold">{{ finding.asset.hostname if finding.asset else 'Asset #' + finding.asset_id|string }}</div>
+                                    <div class="col-sm-4 text-muted">Software:</div>
+                                    <div class="col-sm-8 fw-bold">{{ finding.software_name }}</div>
+                                    <div class="col-sm-4 text-muted">Current Version:</div>
+                                    <div class="col-sm-8"><code class="text-danger fw-bold">{{ finding.installed_version }}</code></div>
+                                    <div class="col-sm-4 text-muted">Advisory:</div>
+                                    <div class="col-sm-8 font-monospace text-primary fw-bold">{{ finding.cve_id }} (CVSS {{ "%.1f"|format(finding.cvss_score) if finding.cvss_score else 'N/A' }})</div>
+                                    <div class="col-sm-4 text-muted">Recommended Fix:</div>
+                                    <div class="col-sm-8">
+                                        {% if finding.fixed_version %}
+                                            <span class="badge bg-success-subtle text-success border border-success">{{ finding.fixed_version }}</span>
+                                        {% else %}
+                                            <span class="text-muted">Unspecified by vendor</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="target_ver_index_{{ finding.id }}" class="form-label fw-semibold">New Installed Software Version <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control font-monospace" id="target_ver_index_{{ finding.id }}" name="target_version" value="{{ finding.fixed_version or '' }}" placeholder="e.g. 2.4.51" required>
+                                <div class="form-text small">Updating the version triggers an instant compliance re-scan. If the version is clean, this product is immediately removed from non-compliant findings.</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="bi bi-check2-circle me-1"></i> Save Update & Re-Scan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+{% endif %}
 {% endblock %}

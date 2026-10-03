@@ -605,3 +605,46 @@ code, pre, .font-monospace {
     border-top-color: #1a2536;
 }
 
+/* ==============================================================================
+   Compact Table Action Buttons & Text Wrapping
+   ============================================================================== */
+.btn-table-action {
+    font-size: 0.72rem !important;
+    padding: 0.18rem 0.45rem !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    text-align: center;
+    border-radius: 0.25rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    max-width: 95px;
+    box-sizing: border-box;
+}
+
+.btn-table-action i {
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.btn-table-action span {
+    display: inline-block;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+    line-height: 1.15;
+}
+
+.table-action-group {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+

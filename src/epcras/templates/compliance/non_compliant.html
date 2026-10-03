@@ -41,92 +41,271 @@
     </div>
 </div>
 
-<!-- Findings Table -->
-<div class="card shadow-sm border-0">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Asset Hostname</th>
-                        <th>Software</th>
-                        <th>Installed Version</th>
-                        <th>CVE ID</th>
-                        <th class="text-center">CVSS</th>
-                        <th>Severity</th>
-                        <th>Fixed Version</th>
-                        <th class="text-center">Patch Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if findings %}
-                        {% for finding in findings %}
+<!-- Bulk Actions & Overview Bar -->
+{% set fixable_count = findings | selectattr('fixed_version') | list | length %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-2 fs-7">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ findings|length }} Non-Compliant Finding(s)
+        </span>
+        {% if fixable_count > 0 %}
+        <span class="badge bg-success-subtle text-success border border-success px-3 py-2 fs-7">
+            <i class="bi bi-patch-check-fill me-1"></i>{{ fixable_count }} Patch(es) Available
+        </span>
+        {% endif %}
+    </div>
+
+    {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT', 'SECURITY_ANALYST') %}
+    <div class="d-flex align-items-center gap-2">
+        {% if fixable_count > 0 %}
+        <form action="{{ url_for('compliance.bulk_update') }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to update all {{ fixable_count }} remediable software installations to their fixed versions across all assets?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="patch_all_fixable" value="true"/>
+            <button type="submit" class="btn btn-sm btn-success shadow-sm d-flex align-items-center gap-1">
+                <i class="bi bi-lightning-charge-fill"></i>
+                <span>Bulk Patch All Fixable ({{ fixable_count }})</span>
+            </button>
+        </form>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Findings Form & Table -->
+<form id="bulkPatchForm" method="POST" action="{{ url_for('compliance.bulk_update') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+    <!-- Dynamic Selected Items Bar -->
+    <div id="selectionToolbar" class="alert alert-primary py-2 px-3 mb-3 d-none align-items-center justify-content-between shadow-sm border-0">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-check-square-fill fs-5 text-primary"></i>
+            <span id="selectedCountText" class="fw-semibold">0 finding(s) selected</span>
+        </div>
+        <button type="submit" class="btn btn-sm btn-primary shadow-sm d-flex align-items-center gap-1">
+            <i class="bi bi-shield-check"></i>
+            <span>Bulk Update Selected to Fixed Version</span>
+        </button>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
                         <tr>
-                            <td>
-                                <a href="{{ url_for('compliance.asset_compliance', asset_id=finding.asset_id) }}" class="fw-bold text-decoration-none">
-                                    {{ finding.asset.hostname if finding.asset else 'Asset #' + finding.asset_id|string }}
-                                </a>
-                            </td>
-                            <td><span class="fw-semibold">{{ finding.software_name }}</span></td>
-                            <td><code class="text-dark">{{ finding.installed_version }}</code></td>
-                            <td>
-                                {% if finding.cve_id %}
-                                    <a href="{{ url_for('vulnerability.index', cve=finding.cve_id) }}" class="font-monospace text-decoration-none fw-bold">
-                                        {{ finding.cve_id }}
+                            {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT', 'SECURITY_ANALYST') %}
+                            <th style="width: 40px;" class="text-center">
+                                <input type="checkbox" id="selectAllCheckbox" class="form-check-input" title="Select all fixable items">
+                            </th>
+                            {% endif %}
+                            <th>Asset Hostname</th>
+                            <th>Software</th>
+                            <th>Installed Version</th>
+                            <th>CVE ID</th>
+                            <th class="text-center">CVSS</th>
+                            <th>Severity</th>
+                            <th>Fixed Version</th>
+                            <th class="text-center">Patch Status</th>
+                            {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT', 'SECURITY_ANALYST') %}
+                            <th class="text-end pe-3">Action</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if findings %}
+                            {% for finding in findings %}
+                            <tr>
+                                {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT', 'SECURITY_ANALYST') %}
+                                <td class="text-center">
+                                    <input type="checkbox" name="finding_ids" value="{{ finding.id }}" class="form-check-input item-checkbox" {% if not finding.fixed_version %}disabled title="No fixed version available for automated patch"{% endif %}>
+                                </td>
+                                {% endif %}
+                                <td>
+                                    <a href="{{ url_for('compliance.asset_compliance', asset_id=finding.asset_id) }}" class="fw-bold text-decoration-none">
+                                        {{ finding.asset.hostname if finding.asset else 'Asset #' + finding.asset_id|string }}
                                     </a>
-                                {% else %}
-                                    —
+                                </td>
+                                <td>
+                                    <span class="fw-semibold text-dark">{{ finding.software_name }}</span>
+                                </td>
+                                <td><code class="text-dark">{{ finding.installed_version }}</code></td>
+                                <td>
+                                    {% if finding.cve_id %}
+                                        <a href="{{ url_for('vulnerability.index', cve=finding.cve_id) }}" class="font-monospace text-decoration-none fw-bold">
+                                            {{ finding.cve_id }}
+                                        </a>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if finding.cvss_score %}
+                                        <span class="badge {% if finding.cvss_score >= 9.0 %}bg-danger{% elif finding.cvss_score >= 7.0 %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} font-monospace">
+                                            {{ "%.1f"|format(finding.cvss_score) }}
+                                        </span>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if finding.severity == 'CRITICAL' %}
+                                        <span class="badge bg-danger">Critical</span>
+                                    {% elif finding.severity == 'HIGH' %}
+                                        <span class="badge bg-warning text-dark">High</span>
+                                    {% elif finding.severity == 'MEDIUM' %}
+                                        <span class="badge bg-info text-dark">Medium</span>
+                                    {% elif finding.severity == 'LOW' %}
+                                        <span class="badge bg-secondary">Low</span>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if finding.fixed_version %}
+                                        <span class="badge bg-success-subtle text-success border border-success">{{ finding.fixed_version }}</span>
+                                    {% else %}
+                                        <span class="text-muted fs-7">No Fix Available</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if finding.patch_available %}
+                                        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Patch Available</span>
+                                    {% else %}
+                                        <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Unpatched</span>
+                                    {% endif %}
+                                </td>
+                                {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT', 'SECURITY_ANALYST') %}
+                                <td class="text-end pe-3">
+                                    <div class="table-action-group">
+                                        {% if finding.fixed_version %}
+                                        <button type="submit" form="quickPatchForm{{ finding.id }}" class="btn btn-success btn-table-action shadow-sm" title="Mark as Updated to {{ finding.fixed_version }}">
+                                            <i class="bi bi-check2-circle"></i>
+                                            <span>Mark Updated</span>
+                                        </button>
+                                        {% endif %}
+                                        <button type="button" class="btn btn-outline-primary btn-table-action" data-bs-toggle="modal" data-bs-target="#updateModal{{ finding.id }}" title="Specify custom updated version">
+                                            <i class="bi bi-pencil-square"></i>
+                                            <span>Update...</span>
+                                        </button>
+                                    </div>
+                                </td>
                                 {% endif %}
-                            </td>
-                            <td class="text-center">
-                                {% if finding.cvss_score %}
-                                    <span class="badge {% if finding.cvss_score >= 9.0 %}bg-danger{% elif finding.cvss_score >= 7.0 %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} font-monospace">
-                                        {{ "%.1f"|format(finding.cvss_score) }}
-                                    </span>
-                                {% else %}
-                                    —
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if finding.severity == 'CRITICAL' %}
-                                    <span class="badge bg-danger">Critical</span>
-                                {% elif finding.severity == 'HIGH' %}
-                                    <span class="badge bg-warning text-dark">High</span>
-                                {% elif finding.severity == 'MEDIUM' %}
-                                    <span class="badge bg-info text-dark">Medium</span>
-                                {% elif finding.severity == 'LOW' %}
-                                    <span class="badge bg-secondary">Low</span>
-                                {% else %}
-                                    —
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if finding.fixed_version %}
-                                    <span class="badge bg-success-subtle text-success border border-success">{{ finding.fixed_version }}</span>
-                                {% else %}
-                                    <span class="text-muted fs-7">No Fix Available</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
-                                {% if finding.patch_available %}
-                                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Patch Available</span>
-                                {% else %}
-                                    <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Unpatched</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">
-                                <i class="bi bi-shield-check fs-2 text-success d-block mb-2"></i>
-                                No non-compliant vulnerability findings matching filters.
-                            </td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center py-5 text-muted">
+                                    <i class="bi bi-shield-check fs-1 text-success d-block mb-2"></i>
+                                    <span class="fs-6 fw-semibold text-success d-block">Zero Non-Compliant Vulnerabilities</span>
+                                    <span class="small text-muted">All installed software versions meet security compliance standards.</span>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</div>
+</form>
+
+<!-- Hidden Single Quick-Patch Forms -->
+{% for finding in findings %}
+    {% if finding.fixed_version %}
+    <form id="quickPatchForm{{ finding.id }}" action="{{ url_for('compliance.update_finding', finding_id=finding.id) }}" method="POST" class="d-none">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <input type="hidden" name="target_version" value="{{ finding.fixed_version }}"/>
+    </form>
+    {% endif %}
+
+    <!-- Custom Version Modal for Finding -->
+    <div class="modal fade" id="updateModal{{ finding.id }}" tabindex="-1" aria-labelledby="updateModalLabel{{ finding.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <form action="{{ url_for('compliance.update_finding', finding_id=finding.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title" id="updateModalLabel{{ finding.id }}">
+                            <i class="bi bi-patch-check-fill me-2 text-info"></i>Mark Software as Updated
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="alert alert-light border mb-3">
+                            <div class="row g-2 small">
+                                <div class="col-sm-4 text-muted">Asset:</div>
+                                <div class="col-sm-8 fw-bold">{{ finding.asset.hostname if finding.asset else 'Asset #' + finding.asset_id|string }}</div>
+                                <div class="col-sm-4 text-muted">Software:</div>
+                                <div class="col-sm-8 fw-bold">{{ finding.software_name }}</div>
+                                <div class="col-sm-4 text-muted">Current Version:</div>
+                                <div class="col-sm-8"><code class="text-danger fw-bold">{{ finding.installed_version }}</code></div>
+                                <div class="col-sm-4 text-muted">Advisory:</div>
+                                <div class="col-sm-8 font-monospace text-primary fw-bold">{{ finding.cve_id }} (CVSS {{ "%.1f"|format(finding.cvss_score) if finding.cvss_score else 'N/A' }})</div>
+                                <div class="col-sm-4 text-muted">Recommended Fix:</div>
+                                <div class="col-sm-8">
+                                    {% if finding.fixed_version %}
+                                        <span class="badge bg-success-subtle text-success border border-success">{{ finding.fixed_version }}</span>
+                                    {% else %}
+                                        <span class="text-muted">Unspecified by vendor</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="target_version_{{ finding.id }}" class="form-label fw-semibold">New Installed Software Version <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control font-monospace" id="target_version_{{ finding.id }}" name="target_version" value="{{ finding.fixed_version or '' }}" placeholder="e.g. 2.4.51" required>
+                            <div class="form-text small">Updating the version triggers an instant compliance re-scan. If the version is secure, this product is immediately removed from non-compliant findings.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success btn-sm">
+                            <i class="bi bi-check2-circle me-1"></i> Save Update & Re-Scan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const selectAll = document.getElementById("selectAllCheckbox");
+        const itemCheckboxes = document.querySelectorAll(".item-checkbox:not(:disabled)");
+        const toolbar = document.getElementById("selectionToolbar");
+        const countText = document.getElementById("selectedCountText");
+
+        function updateToolbar() {
+            const checkedCount = document.querySelectorAll(".item-checkbox:checked").length;
+            if (toolbar) {
+                if (checkedCount > 0) {
+                    toolbar.classList.remove("d-none");
+                    toolbar.classList.add("d-flex");
+                    countText.textContent = checkedCount + " finding(s) selected";
+                } else {
+                    toolbar.classList.add("d-none");
+                    toolbar.classList.remove("d-flex");
+                }
+            }
+            if (selectAll) {
+                selectAll.checked = (itemCheckboxes.length > 0 && checkedCount === itemCheckboxes.length);
+            }
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener("change", function() {
+                itemCheckboxes.forEach(cb => cb.checked = selectAll.checked);
+                updateToolbar();
+            });
+        }
+
+        itemCheckboxes.forEach(cb => {
+            cb.addEventListener("change", updateToolbar);
+        });
+    });
+</script>
 {% endblock %}

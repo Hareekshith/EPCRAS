@@ -52,6 +52,9 @@
                             <th>Severity</th>
                             <th>Fixed Version</th>
                             <th class="text-center">Patch Status</th>
+                            {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT', 'SECURITY_ANALYST') %}
+                            <th class="text-end pe-3">Action</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -94,6 +97,26 @@
                                     <span class="badge bg-danger">Unpatched</span>
                                 {% endif %}
                             </td>
+                            {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT', 'SECURITY_ANALYST') %}
+                            <td class="text-end pe-3">
+                                <div class="table-action-group">
+                                    {% if finding.fixed_version %}
+                                    <form action="{{ url_for('compliance.update_finding', finding_id=finding.id) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <input type="hidden" name="target_version" value="{{ finding.fixed_version }}"/>
+                                        <button type="submit" class="btn btn-success btn-table-action shadow-sm" title="Mark as Updated to {{ finding.fixed_version }}">
+                                            <i class="bi bi-check2-circle"></i>
+                                            <span>Mark Updated</span>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-outline-primary btn-table-action" data-bs-toggle="modal" data-bs-target="#updateFindingModal{{ finding.id }}" title="Specify custom updated version">
+                                        <i class="bi bi-pencil-square"></i>
+                                        <span>Update...</span>
+                                    </button>
+                                </div>
+                            </td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -116,6 +139,9 @@
                         <th>Vendor</th>
                         <th>Installed Version</th>
                         <th>Compliance Status</th>
+                        {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT') %}
+                        <th class="text-end pe-3">Manage</th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -134,11 +160,18 @@
                                     <span class="badge bg-secondary"><i class="bi bi-question-circle me-1"></i>Unknown</span>
                                 {% endif %}
                             </td>
+                            {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT') %}
+                            <td class="text-end pe-3">
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-bs-toggle="modal" data-bs-target="#editSwModal{{ item.id }}" title="Change version">
+                                    <i class="bi bi-pencil me-1"></i>Edit Version
+                                </button>
+                            </td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="4" class="text-center py-3 text-muted">No installed software linked to this asset.</td>
+                            <td colspan="5" class="text-center py-3 text-muted">No installed software linked to this asset.</td>
                         </tr>
                     {% endif %}
                 </tbody>
@@ -146,4 +179,76 @@
         </div>
     </div>
 </div>
+
+<!-- Modals for Findings on this Asset -->
+{% if detail.findings %}
+    {% for finding in detail.findings %}
+    <div class="modal fade" id="updateFindingModal{{ finding.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <form action="{{ url_for('compliance.update_finding', finding_id=finding.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-patch-check-fill me-2 text-info"></i>Mark {{ finding.software_name }} as Updated
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="alert alert-light border mb-3 small">
+                            <div><strong>Advisory:</strong> {{ finding.cve_id }} (CVSS {{ "%.1f"|format(finding.cvss_score) if finding.cvss_score else 'N/A' }})</div>
+                            <div><strong>Current Version:</strong> <code class="text-danger">{{ finding.installed_version }}</code></div>
+                            <div><strong>Recommended Fix:</strong> {{ finding.fixed_version or 'Unspecified' }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Target Updated Version <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control font-monospace" name="target_version" value="{{ finding.fixed_version or '' }}" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success btn-sm">
+                            <i class="bi bi-check2-circle me-1"></i> Update & Re-Scan Asset
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Modals for Installed Software on this Asset -->
+{% if detail.installed_software %}
+    {% for item in detail.installed_software %}
+    <div class="modal fade" id="editSwModal{{ item.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <form action="{{ url_for('asset.update_software', asset_id=detail.asset.id, installed_sw_id=item.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-pencil-square me-2 text-info"></i>Edit Installed Software Version
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <p class="mb-2"><strong>Application:</strong> {{ item.software.name }} ({{ item.software.vendor }})</p>
+                        <p class="mb-3"><strong>Current Version:</strong> <code>{{ item.version }}</code></p>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">New Installed Version <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control font-monospace" name="version" value="{{ item.version }}" required>
+                            <div class="form-text small">Updating version automatically re-evaluates compliance for this asset.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm">Save & Re-Scan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endif %}
 {% endblock %}

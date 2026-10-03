@@ -180,6 +180,25 @@ def delete_software(asset_id, installed_sw_id):
         flash('Software association not found.', 'danger')
     return redirect(url_for('asset.detail', asset_id=asset_id))
 
+@asset_bp.route('/<int:asset_id>/software/<int:installed_sw_id>/update', methods=['POST'])
+@login_required
+@role_required(Role.ADMINISTRATOR, Role.IT_SUPPORT)
+def update_software(asset_id, installed_sw_id):
+    from epcras.services.software_service import update_installed_software_version
+
+    new_version = request.form.get('version', '').strip()
+    if not new_version:
+        flash("Software version cannot be empty.", 'danger')
+        return redirect(url_for('asset.detail', asset_id=asset_id))
+
+    try:
+        res = update_installed_software_version(installed_sw_id, new_version, trigger_compliance=True)
+        flash(f"Updated '{res['software_name']}' to version {new_version}. Compliance analysis refreshed.", 'success')
+    except Exception as e:
+        flash(f"Update error: {str(e)}", 'danger')
+
+    return redirect(url_for('asset.detail', asset_id=asset_id))
+
 @asset_bp.route('/departments', methods=['GET', 'POST'])
 @login_required
 @role_required(Role.ADMINISTRATOR, Role.IT_SUPPORT)

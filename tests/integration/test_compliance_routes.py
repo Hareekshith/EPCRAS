@@ -77,3 +77,76 @@ def test_targeted_compliance_run_and_filtering_routes(client, admin_user, app):
     resp_filter = client.get('/compliance/non-compliant?severity=CRITICAL&software=Log4j')
     assert resp_filter.status_code == 200
 
+
+def test_manual_update_finding_route(client, admin_user, app):
+    from epcras.services.compliance_service import run_compliance_analysis
+
+    asset = create_asset({'hostname': 'SRV-PATCH-DEMO', 'ip_address': '10.10.20.1'})
+    sw = get_or_create_software("Apache HTTP Server", "Apache Software Foundation")
+    add_installed_software(asset.id, sw.id, "2.4.49")
+
+    create_vulnerability({
+        'cve_id': 'CVE-2021-41773',
+        'software': 'Apache HTTP Server',
+        'vendor': 'Apache Software Foundation',
+        'cvss_score': 9.8,
+        'severity': 'CRITICAL',
+        'affected_versions': '2.4.49',
+        'fixed_version': '2.4.51'
+    })
+
+    run_compliance_analysis(asset_id=asset.id)
+    finding = ComplianceResult.query.filter_by(asset_id=asset.id, status=ComplianceStatus.NON_COMPLIANT).first()
+    assert finding is not None
+
+    login_as(client, admin_user.username, 'AdminSecret123!')
+
+    # Post manual update to fixed version
+    resp = client.post(f'/compliance/findings/{finding.id}/update', data={
+        'target_version': '2.4.51'
+    }, follow_redirects=True)
+    assert resp.status_code == 200
+    assert b'as updated to version 2.4.51' in resp.data
+
+    # Ensure finding is removed from non-compliant findings
+    remaining = ComplianceResult.query.filter_by(asset_id=asset.id, status=ComplianceStatus.NON_COMPLIANT).all()
+    assert len(remaining) == 0
+
+
+def test_bulk_patch_route(client, support_user, app):
+    from epcras.services.compliance_service import run_compliance_analysis
+
+    a1 = create_asset({'hostname': 'BULK-ROUTE-01', 'ip_address': '10.10.30.1'})
+    a2 = create_asset({'hostname': 'BULK-ROUTE-02', 'ip_address': '10.10.30.2'})
+    sw = get_or_create_software("Tomcat", "Apache Software Foundation")
+    add_installed_software(a1.id, sw.id, "9.0.40")
+    add_installed_software(a2.id, sw.id, "9.0.40")
+
+    create_vulnerability({
+        'cve_id': 'CVE-2021-25122',
+        'software': 'Tomcat',
+        'vendor': 'Apache Software Foundation',
+        'cvss_score': 7.5,
+        'severity': 'HIGH',
+        'affected_versions': '9.0.40',
+        'fixed_version': '9.0.43'
+    })
+
+    run_compliance_analysis()
+    findings = ComplianceResult.query.filter_by(cve_id='CVE-2021-25122', status=ComplianceStatus.NON_COMPLIANT).all()
+    assert len(findings) >= 2
+
+    login_as(client, support_user.username, 'SupportSecret123!')
+
+    # Execute bulk patch for all fixable
+    resp = client.post('/compliance/bulk-update', data={
+        'patch_all_fixable': 'true'
+    }, follow_redirects=True)
+    assert resp.status_code == 200
+    assert b'Bulk patch successful' in resp.data
+
+    # Verify both are resolved
+    remaining = ComplianceResult.query.filter_by(cve_id='CVE-2021-25122', status=ComplianceStatus.NON_COMPLIANT).all()
+    assert len(remaining) == 0
+
+

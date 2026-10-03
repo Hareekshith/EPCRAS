@@ -52,3 +52,44 @@ def import_csv():
             return redirect(url_for('asset.index'))
 
     return render_template('software/import.html', form=form, errors=errors, success_count=success_count)
+
+@software_bp.route('/bulk-upgrade', methods=['POST'])
+@login_required
+@role_required(Role.ADMINISTRATOR, Role.IT_SUPPORT)
+def bulk_upgrade():
+    from epcras.services.software_service import fleet_wide_software_upgrade
+
+    software_id_raw = request.form.get('software_id', '').strip()
+    target_version = request.form.get('target_version', '').strip()
+    current_version = request.form.get('current_version', '').strip()
+
+    if not software_id_raw or not software_id_raw.isdigit():
+        flash("Please select a valid software product.", "danger")
+        return redirect(url_for('software.index'))
+
+    if not target_version:
+        flash("Target version cannot be empty.", "danger")
+        return redirect(url_for('software.index'))
+
+    software_id = int(software_id_raw)
+    try:
+        res = fleet_wide_software_upgrade(
+            software_id=software_id,
+            target_version=target_version,
+            current_version=current_version if current_version else None
+        )
+        count = res['updated_count']
+        assets_count = res['affected_assets_count']
+        sw_name = res['software_name']
+        if count > 0:
+            flash(
+                f"Fleet upgrade complete: Updated {count} installation(s) of '{sw_name}' to version {target_version} across {assets_count} asset(s). Compliance analysis automatically refreshed.",
+                "success"
+            )
+        else:
+            flash(f"No installations of '{sw_name}' required updating to version {target_version}.", "info")
+    except Exception as e:
+        flash(f"Fleet upgrade error: {str(e)}", "danger")
+
+    return redirect(url_for('software.index'))
+

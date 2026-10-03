@@ -22,7 +22,7 @@ def run_compliance_analysis(asset_id: int = None) -> dict:
     # Clear existing compliance results for targeted installed software items
     installed_ids = [item.id for item in installed_items]
     if installed_ids:
-        ComplianceResult.query.filter(ComplianceResult.installed_software_id.in_(installed_ids)).delete(synchronize_session=False)
+        ComplianceResult.query.filter(ComplianceResult.installed_software_id.in_(installed_ids)).delete(synchronize_session='fetch')
 
     scanned_count = len(installed_items)
     non_compliant_count = 0

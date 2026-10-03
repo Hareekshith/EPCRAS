@@ -125,12 +125,17 @@
                                 <td><span class="badge bg-secondary font-monospace">{{ inst.version }}</span></td>
                                 {% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT') %}
                                 <td class="text-end">
-                                    <form method="POST" action="{{ url_for('asset.delete_software', asset_id=asset.id, installed_sw_id=inst.id) }}" class="d-inline" onsubmit="return confirm('Remove software {{ inst.software.name }} from {{ asset.hostname }}?');">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove Association">
-                                            <i class="bi bi-x-circle"></i> Remove
+                                    <div class="table-action-group">
+                                        <button type="button" class="btn btn-outline-primary btn-table-action" data-bs-toggle="modal" data-bs-target="#editAssetSwModal{{ inst.id }}" title="Update Version">
+                                            <i class="bi bi-pencil-square"></i> <span>Update</span>
                                         </button>
-                                    </form>
+                                        <form method="POST" action="{{ url_for('asset.delete_software', asset_id=asset.id, installed_sw_id=inst.id) }}" class="d-inline" onsubmit="return confirm('Remove software {{ inst.software.name }} from {{ asset.hostname }}?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-outline-danger btn-table-action" title="Remove Association">
+                                                <i class="bi bi-x-circle"></i> <span>Remove</span>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                                 {% endif %}
                             </tr>
@@ -148,4 +153,40 @@
         </div>
     </div>
 </div>
+
+<!-- Modals for Updating Software on Asset -->
+{% if current_user.has_role('ADMINISTRATOR', 'IT_SUPPORT') %}
+    {% for inst in asset.installed_software.all() %}
+    <div class="modal fade" id="editAssetSwModal{{ inst.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow">
+                <form action="{{ url_for('asset.update_software', asset_id=asset.id, installed_sw_id=inst.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-pencil-square me-2 text-info"></i>Update {{ inst.software.name }}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Current Version</label>
+                            <div><code class="text-secondary fs-6">{{ inst.version }}</code></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">New Installed Version <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control font-monospace" name="version" value="{{ inst.version }}" required>
+                            <div class="form-text small">Updating version automatically re-evaluates compliance for this asset.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-sm">Save & Re-Scan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endif %}
 {% endblock %}

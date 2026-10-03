@@ -75,3 +75,72 @@ def priority_queue():
     queue = get_patch_priority_queue()
     return render_template('compliance/priority_queue.html', queue=queue)
 
+@compliance_bp.route('/findings/<int:finding_id>/update', methods=['POST'])
+@login_required
+@role_required(Role.ADMINISTRATOR, Role.IT_SUPPORT, Role.SECURITY_ANALYST)
+def update_finding(finding_id):
+    from epcras.extensions import db
+    from epcras.models.compliance import ComplianceResult
+    from epcras.services.software_service import update_installed_software_version, clean_fixed_version
+
+    finding = db.session.get(ComplianceResult, finding_id)
+    if not finding:
+        flash("Finding not found.", "danger")
+        return redirect(request.referrer or url_for('compliance.non_compliant'))
+
+    target_version = request.form.get('target_version', '').strip()
+    if not target_version and finding.fixed_version:
+        target_version = clean_fixed_version(finding.fixed_version)
+
+    if not target_version:
+        flash("Target version is required. Please specify the updated version.", "danger")
+        return redirect(request.referrer or url_for('compliance.non_compliant'))
+
+    try:
+        res = update_installed_software_version(
+            installed_sw_id=finding.installed_software_id,
+            new_version=target_version,
+            trigger_compliance=True
+        )
+        flash(
+            f"Successfully marked '{res['software_name']}' as updated to version {res['new_version']} on {res['asset_hostname']}. Compliance analysis refreshed: resolved finding removed.",
+            "success"
+        )
+    except Exception as e:
+        flash(f"Error updating software version: {str(e)}", "danger")
+
+    return redirect(request.referrer or url_for('compliance.non_compliant'))
+
+@compliance_bp.route('/bulk-update', methods=['POST'])
+@login_required
+@role_required(Role.ADMINISTRATOR, Role.IT_SUPPORT, Role.SECURITY_ANALYST)
+def bulk_update():
+    from epcras.services.software_service import bulk_patch_findings
+
+    patch_all = request.form.get('patch_all_fixable') == 'true'
+    finding_ids_raw = request.form.getlist('finding_ids')
+    finding_ids = [int(fid) for fid in finding_ids_raw if fid.isdigit()]
+
+    if not patch_all and not finding_ids:
+        flash("Please select at least one finding to update.", "warning")
+        return redirect(url_for('compliance.non_compliant'))
+
+    res = bulk_patch_findings(finding_ids=finding_ids, patch_all_fixable=patch_all)
+    count = res.get('updated_count', 0)
+    assets_count = res.get('affected_assets_count', 0)
+    errors = res.get('errors', [])
+
+    if count > 0:
+        flash(
+            f"Bulk patch successful: Updated {count} software installation(s) across {assets_count} asset(s) to their fixed versions. All remediated products are now compliant and removed from non-compliant findings.",
+            "success"
+        )
+    if errors:
+        for err in errors[:5]:
+            flash(err, "danger")
+    elif count == 0 and not errors:
+        flash("No software installations were updated. Check if selected findings have fixed versions available.", "info")
+
+    return redirect(url_for('compliance.non_compliant'))
+
+

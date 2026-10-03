@@ -136,3 +136,133 @@ def test_software_and_installed_software_repr(app):
     assert "Git" in repr(sw)
     assert "2.44.0" in repr(inst)
 
+
+def test_clean_fixed_version():
+    from epcras.services.software_service import clean_fixed_version
+    assert clean_fixed_version(">= 2.17.1") == "2.17.1"
+    assert clean_fixed_version("2.4.51") == "2.4.51"
+    assert clean_fixed_version("v1.2.3") == "1.2.3"
+    assert clean_fixed_version(">= 3.0.0, < 4.0.0") == "3.0.0"
+    assert clean_fixed_version("") == ""
+    assert clean_fixed_version(None) == ""
+
+
+def test_update_installed_software_version_and_compliance(app):
+    from epcras.services.software_service import update_installed_software_version
+    from epcras.services.vulnerability_service import create_vulnerability
+    from epcras.services.compliance_service import run_compliance_analysis
+    from epcras.models.compliance import ComplianceResult, ComplianceStatus
+
+    asset = create_asset({'hostname': 'PATCH-TEST-01', 'ip_address': '10.0.1.1', 'operating_system': 'Linux'})
+    sw = get_or_create_software("OpenSSL", "OpenSSL Project")
+    inst = add_installed_software(asset.id, sw.id, "1.1.1")
+
+    create_vulnerability({
+        'cve_id': 'CVE-2021-3711',
+        'software': 'OpenSSL',
+        'vendor': 'OpenSSL Project',
+        'cvss_score': 9.8,
+        'severity': 'CRITICAL',
+        'affected_versions': '1.1.1',
+        'fixed_version': '1.1.1l'
+    })
+
+    # Initial scan -> Non-compliant
+    run_compliance_analysis(asset_id=asset.id)
+    findings = ComplianceResult.query.filter_by(asset_id=asset.id, status=ComplianceStatus.NON_COMPLIANT).all()
+    assert len(findings) == 1
+
+    # Validation errors
+    with pytest.raises(ValueError, match="New software version cannot be empty"):
+        update_installed_software_version(inst.id, "")
+
+    with pytest.raises(ValueError, match="Installed software record ID 999999 not found"):
+        update_installed_software_version(999999, "1.1.1l")
+
+    # Update version to 1.1.1l -> Compliant, finding removed
+    res = update_installed_software_version(inst.id, "1.1.1l", trigger_compliance=True)
+    assert res['success'] is True
+    assert res['new_version'] == "1.1.1l"
+    assert res['already_updated'] is False
+
+    # Already updated idempotent call
+    res_idem = update_installed_software_version(inst.id, "1.1.1l", trigger_compliance=True)
+    assert res_idem['already_updated'] is True
+
+    findings_after = ComplianceResult.query.filter_by(asset_id=asset.id, status=ComplianceStatus.NON_COMPLIANT).all()
+    assert len(findings_after) == 0
+
+
+def test_bulk_patch_findings(app):
+    from epcras.services.software_service import bulk_patch_findings
+    from epcras.services.vulnerability_service import create_vulnerability
+    from epcras.services.compliance_service import run_compliance_analysis
+    from epcras.models.compliance import ComplianceResult, ComplianceStatus
+
+    a1 = create_asset({'hostname': 'BULK-01', 'ip_address': '10.0.2.1', 'operating_system': 'Linux'})
+    a2 = create_asset({'hostname': 'BULK-02', 'ip_address': '10.0.2.2', 'operating_system': 'Linux'})
+    sw = get_or_create_software("Nginx", "F5")
+
+    inst1 = add_installed_software(a1.id, sw.id, "1.20.0")
+    inst2 = add_installed_software(a2.id, sw.id, "1.20.0")
+
+    create_vulnerability({
+        'cve_id': 'CVE-2021-23017',
+        'software': 'Nginx',
+        'vendor': 'F5',
+        'cvss_score': 9.5,
+        'severity': 'CRITICAL',
+        'affected_versions': '1.20.0',
+        'fixed_version': '1.20.1'
+    })
+
+    run_compliance_analysis()
+    non_comp = ComplianceResult.query.filter_by(status=ComplianceStatus.NON_COMPLIANT).all()
+    assert len(non_comp) >= 2
+
+    # Bulk patch all fixable
+    res = bulk_patch_findings(patch_all_fixable=True)
+    assert res['updated_count'] >= 2
+
+    # Verify both assets are now running 1.20.1 and compliant
+    inst1_refreshed = db_get_inst(inst1.id)
+    inst2_refreshed = db_get_inst(inst2.id)
+    assert inst1_refreshed.version == "1.20.1"
+    assert inst2_refreshed.version == "1.20.1"
+
+    # Empty finding IDs handling
+    empty_res = bulk_patch_findings(finding_ids=[])
+    assert empty_res['updated_count'] == 0
+
+
+def test_fleet_wide_software_upgrade(app):
+    from epcras.services.software_service import fleet_wide_software_upgrade
+
+    a1 = create_asset({'hostname': 'FLEET-01', 'ip_address': '10.0.3.1', 'operating_system': 'Linux'})
+    a2 = create_asset({'hostname': 'FLEET-02', 'ip_address': '10.0.3.2', 'operating_system': 'Linux'})
+    sw = get_or_create_software("Redis", "Redis Ltd")
+
+    inst1 = add_installed_software(a1.id, sw.id, "6.2.0")
+    inst2 = add_installed_software(a2.id, sw.id, "6.2.0")
+
+    # Error handling
+    with pytest.raises(ValueError, match="Software ID 999999 not found"):
+        fleet_wide_software_upgrade(999999, "7.0.0")
+
+    with pytest.raises(ValueError, match="Target version cannot be empty"):
+        fleet_wide_software_upgrade(sw.id, "")
+
+    res = fleet_wide_software_upgrade(sw.id, "7.0.0")
+    assert res['updated_count'] == 2
+
+    inst1_refreshed = db_get_inst(inst1.id)
+    inst2_refreshed = db_get_inst(inst2.id)
+    assert inst1_refreshed.version == "7.0.0"
+    assert inst2_refreshed.version == "7.0.0"
+
+
+def db_get_inst(inst_id):
+    from epcras.extensions import db
+    return db.session.get(InstalledSoftware, inst_id)
+
+
